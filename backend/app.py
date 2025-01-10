@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify
 from firebase_admin import credentials, firestore, initialize_app
 from datetime import datetime
+from flask_cors import CORS
+from openai import OpenAI  # Correct import
 import uuid
 import os
 import json
-import openai
-from openai import openAI
-from flask_cors import CORS  
 
 app = Flask(__name__)
 CORS(app)
