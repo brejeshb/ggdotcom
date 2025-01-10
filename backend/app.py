@@ -77,7 +77,7 @@ def chat():
             #Initalize prompt with IMAGE
             prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text that is given.
                 You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
-                Do not mention anything about coordinates.
+                Do not mention anything about the address in your answer.
                 Answer what is given in the user's text and describe in detail regarding history or context that is applicable.
                 Here is the Users text: {text_data}"""
                 
@@ -170,7 +170,7 @@ def chat():
             #Initalize prompt with IMAGE
             prompt = f"""You are a Singapore Tour Guide, please provide details regarding the photo that is given.
                 You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
-                Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
+                Start by saying, You see [Point of interest]. Do not mention anything about the address in your answer.
                 Include only what is given in the photo and describe in detail regarding history or context."""
 
 
@@ -255,7 +255,7 @@ def chat():
             # Add address to prompt
             prompt = f"""You are a Singapore Tour Guide, please provide details regarding the nearest point of interest in the nearby surrounding with the address of
                     {address} where the user would be able to visually see.
-                    Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
+                    Start by saying, You see [Point of interest]. Do not mention anything about the address in your answer.
                     Include only one specific landmark and describe in detail regarding history or context."""
             
             # Call OpenAI API
