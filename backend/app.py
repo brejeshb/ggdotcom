@@ -281,16 +281,26 @@ def chat():
                             break
                             
                 if not selected_place:
-                    return jsonify({'error': 'No unvisited places found nearby'}), 404
+                    selected_place = address
 
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
 
             # Add address to prompt
-            prompt = f"""You are a Singapore Tour Guide, please provide details regarding {selected_place} with the address of
-                    {address}.
-                    Start by saying, You see [Point of interest]. Do not mention anything about the address in your answer.
-                    Include only one specific landmark and describe in length the detail regarding it's history or context."""
+            prompt = f"""You are a friendly Singapore Tour Guide giving a walking tour. Please describe the notable landmark {selected_place} to a tourist at {address}.
+
+            If {selected_place} is not a notable tourist landmark or is the same as {address}, instead describe the most interesting and culturally significant landmark nearby that a tourist would want to know about.
+
+            Start by saying "You see [Point of interest name]" - making sure to name an actual landmark, not a generic area.
+
+            Then provide a rich, engaging description that includes:
+            - Historical significance and background
+            - Cultural importance in Singapore
+            - Unique architectural features or design elements (if applicable)
+            - Any interesting facts or stories that make this place special
+            - Why tourists find it worth visiting
+
+            Keep the tone conversational and engaging, as if speaking to tourists in person. Don't mention coordinates or exact addresses in your response."""
             
             print("PROMPT", prompt)
 
