@@ -39,10 +39,6 @@ def chat():
     try:
         data = request.get_json()
 
-        
-        if not data or 'prompt' not in data:
-            return jsonify({'error': 'No prompt provided'}), 400
-
         # Receive coordinates
         location = data.get('location', "")
         logging.info("Location Received: " + location)
