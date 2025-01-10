@@ -6,6 +6,8 @@ from datetime import datetime
 import uuid
 import os
 import logging
+import firebase_admin
+from firebase_admin import credentials
 
 # Configure logging
 logging.basicConfig(level=logging.ERROR)
@@ -13,6 +15,13 @@ logging.basicConfig(level=logging.ERROR)
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
+
+# Firestore initialization
+cred = credentials.Certificate("./ggdotcom-254aa-firebase-adminsdk-1nske-fd0d2cac2a.json")
+firebase_admin.initialize_app(cred)
+
+# Firestore Client
+db = firestore.client()
 
 # Initialize OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -51,6 +60,24 @@ def chat():
             'prompt': prompt,
             'response': response_text
         }
+        try:
+            # create msg data for firestore
+            message_data = {
+                'timestamp': datetime.now(),
+                'message_Id': "",
+                'chatText': response_text,
+                'image': "",
+                'location'
+                'userCheck': "",
+            }
+
+            #Add to firestore
+            db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+            .collection('messages').add(message_data)
+            
+            print(jsonify({"success": True}), 200)
+        except Exception as e:
+            print(jsonify({"error": str(e)}), 400)
 
         return jsonify(response_data)
 
