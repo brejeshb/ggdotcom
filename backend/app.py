@@ -45,6 +45,7 @@ def chat():
 
         # Receive coordinates
         location = data.get('location', "")
+        logging.info("Location Received: " + location)
 
         try:
             # Parse location string into lat, lng
@@ -57,16 +58,18 @@ def chat():
                 address = gmaps_result[0]['formatted_address']
             else:
                 address = location  # Fallback to coordinates if geocoding fails
-                
+            
+            logging.info("address: " + address)
+
         except Exception as e:
             logging.error(f"Geocoding error: {str(e)}")
             address = location  # Fallback to coordinates if there's an error
 
         # Add address to prompt
         prompt = f"""You are a Singapore Tour Guide, please provide details regarding the nearest point of interest in the nearby surrounding with the coordinates of
-        {address} where the user would be able to visually see.
-        Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
-        Include only one specific landmark and describe in detail regarding history or context."""
+                {address} where the user would be able to visually see.
+                Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
+                Include only one specific landmark and describe in detail regarding history or context."""
         
         # Call OpenAI API
         response = openai.chat.completions.create(
@@ -81,6 +84,8 @@ def chat():
         # Extract response text
         response_text = response.choices[0].message.content
 
+        logging.info("Response: " + response_text)
+
         # Create response object
         response_data = {
             'id': uuid.uuid4().hex,
@@ -88,6 +93,7 @@ def chat():
             'prompt': prompt,
             'response': response_text
         }
+
         try:
             # create msg data for firestore
             message_data = {
@@ -104,8 +110,10 @@ def chat():
             .collection('messages').add(message_data)
             
             print(jsonify({"success": True}), 200)
+            logging.info("Added to Firestore")
         except Exception as e:
             print(jsonify({"error": str(e)}), 400)
+            logging.info("Failed to add to Firestore")
 
         return jsonify(response_data)
 
