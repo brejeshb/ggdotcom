@@ -85,6 +85,31 @@ def chat():
         logging.error("Error in /chat endpoint", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
+@app.route('/messages', methods = ['GET'])
+def retrieve():
+    try:    
+        messages = db.collection('tour').document("yDLsVQhwoDF9ZHoG0Myk")\
+                    .collection('messages')\
+                    .order_by('timeStamp')\
+                    .stream()
+        
+        message_list = []
+
+        for msg in messages:
+            msg_data = msg.to_dict()
+            msg_data['id'] = msg.id
+            # Convert timestamp to string for JSON serialization
+            msg_data['timestamp'] = msg_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+            message_list.append(msg_data)
+        
+        return jsonify(message_list), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+        
+    except Exception as e:
+            logging.error("Error in /messages endpoint", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+
 # Configure for gunicorn
 if __name__ == "__main__":
     # If running directly
