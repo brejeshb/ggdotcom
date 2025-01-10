@@ -40,9 +40,18 @@ def chat():
         data = request.get_json()
         # Need factor cases with location, image (Base64)
         # if there is user input, add in to DB as well
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        location = data.get('location')
+        image = data.get('image')
+        text = data.get('text')
+        print(f"Location: {location}")
+        print(f"Image: {image}")
+        print(f"Text: {text}")
 
         #LOCATION WITH TEXT -------------------------------------------------------------
-        if not data or 'location' not in data or 'text' not in data:
+        if location and text:
             try:
                 #Get text data
                 text_data = data.get('text')
@@ -141,7 +150,7 @@ def chat():
         #END LOCATION WITH TEXT -------------------------------------------------------------
         
         #LOCATION WITH IMAGE CHECK ----------------------------------------
-        elif not data or 'location' not in data or 'image' not in data:
+        elif location and image:
             try:
                 image_data = data.get('image')
                 location = data.get('location', "")
@@ -226,7 +235,7 @@ def chat():
         #END LOCATION WITH IMAGE -------------------------------------------------------------
 
         #PURE LOCATION CHECK ----------------------------------------------------------------
-        elif not data or 'location' not in data:
+        else:
             try:
                 # Parse location string into lat, lng
                 location = data.get('location', "")
