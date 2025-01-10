@@ -64,21 +64,6 @@ def chat():
                 # Get address using Google Maps
                 gmaps_result = gmap.reverse_geocode((lat, lng))
 
-                # Get nearby tourist attractions
-                places_result = gmap.places_nearby(
-                    location=(lat, lng),
-                    radius=500,  # 500m radius
-                    type='tourist_attraction',  # Specifically search for tourist attractions
-                    language='en'  # Ensure English results
-                        )
-                
-                place = places_result['results'][0]
-                place_details = gmap.place(
-                    place['place_id'],
-                    fields=['name', 'rating', 'user_ratings_total', 
-                           'formatted_address', 'opening_hours']
-                )
-                print("places", places_result)
                 if gmaps_result and len(gmaps_result) > 0:
                     address = gmaps_result[0]['formatted_address']
                 else:
@@ -264,14 +249,45 @@ def chat():
                 
                 print(f"Address: {address}")
 
+                # Get nearby tourist attractions
+                places_result = gmap.places_nearby(
+                    location=(lat, lng),
+                    radius=500,  # 500m radius
+                    type=['point_of_interest', 'tourist_attraction'],  # Specifically search for tourist attractions
+                    language='en'  # Ensure English results
+                        )
+
+                if data.get('visitedPlaces'):
+                    landmarks = data.get('visitedPlaces')
+                else:
+                    landmarks = []
+
+                print("VISITED PLACES: " , landmarks)
+
+                # Initialize place variable
+                selected_place = None
+
+                if places_result.get('results'):
+                    for place in places_result['results']:
+                        if (place['name'] in landmarks) :
+                            continue
+                        else :
+                            landmarks.append(place['name'])
+                            selected_place = place['name']
+                            print("SELECTED PLACE: " , place)
+                            break
+                
+                if not selected_place:
+                    return jsonify({'error': 'No unvisited places found nearby'}), 404
+
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
 
             # Add address to prompt
-            prompt = f"""You are a Singapore Tour Guide, please provide details regarding the nearest point of interest in the nearby surrounding with the address of
-                    {address} where the user would be able to visually see.
+            prompt = f"""You are a Singapore Tour Guide, please provide details regarding {selected_place} with the address of
+                    {address}.
                     Start by saying, You see [Point of interest]. Do not mention anything about the address in your answer.
-                    Include only one specific landmark and describe in detail regarding history or context."""
+                    Include only one specific landmark and describe in length the detail regarding it's history or context."""
             
             # Call OpenAI API
             response = openai.chat.completions.create(
