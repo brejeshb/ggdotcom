@@ -39,6 +39,9 @@ def chat():
     try:
         data = request.get_json()
 
+        if not data or 'location' not in data:
+            return jsonify({'error': 'No location provided'}), 400
+
         # Receive coordinates
         location = data.get('location', "")
         logging.info("Location Received: " + location)
@@ -122,7 +125,7 @@ def retrieve():
     try:    
         messages = db.collection('tour').document("yDLsVQhwoDF9ZHoG0Myk")\
                     .collection('messages')\
-                    .order_by('timestamp', direction='desc' )\
+                    .order_by('timestamp', direction='DESCENDING' )\
                     .stream()
         
         message_list = []
