@@ -1,22 +1,25 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+import openai
 from firebase_admin import credentials, firestore, initialize_app
 from datetime import datetime
-from flask_cors import CORS
-from openai import OpenAI  # Correct import
 import uuid
 import os
-import json
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.ERROR)
+
+# Initialize Flask app
 app = Flask(__name__)
 CORS(app)
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+# Initialize OpenAI API key
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 @app.route('/')
 def home():
     return "Tour Guide API is running!"
-
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -26,62 +29,10 @@ def chat():
         if not data or 'prompt' not in data:
             return jsonify({'error': 'No prompt provided'}), 400
 
-        # Get the prompt from the request
         prompt = data['prompt']
         
-        # Optional parameters with defaults
-        model = data.get('model', 'gpt-3.5-turbo')
-        max_tokens = data.get('max_tokens', 150)
-        temperature = data.get('temperature', 0.7)
-
-        # Generate response using OpenAI
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=max_tokens,
-            temperature=temperature
-        )
-
-        # Extract the response text
-        response_text = response.choices[0].message.content
-
-        # Create response object
-        response_data = {
-            'id': str(uuid.uuid4()),
-            'timestamp': datetime.utcnow().isoformat(),
-            'prompt': prompt,
-            'response': response_text
-        }
-
-        return jsonify(response_data)
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Optional: Add a route to generate tour guide specific responses
-@app.route('/tour-guide', methods=['POST'])
-def tour_guide():
-    try:
-        data = request.get_json()
-        
-        if not data or 'location' not in data:
-            return jsonify({'error': 'No location provided'}), 400
-
-        location = data['location']
-        interests = data.get('interests', [])
-        duration = data.get('duration', '1 day')
-
-        # Create a structured prompt for the tour guide response
-        prompt = f"""Act as a knowledgeable local tour guide for {location}. 
-        Create a personalized itinerary for {duration}"""
-        
-        if interests:
-            prompt += f" focusing on: {', '.join(interests)}"
-
-        # Generate response using OpenAI
-        response = client.chat.completions.create(
+        # Call OpenAI API
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": prompt}
@@ -90,22 +41,28 @@ def tour_guide():
             temperature=0.7
         )
 
+        # Extract response text
         response_text = response.choices[0].message.content
 
         # Create response object
         response_data = {
-            'id': str(uuid.uuid4()),
+            'id': uuid.uuid4().hex,
             'timestamp': datetime.utcnow().isoformat(),
-            'location': location,
-            'interests': interests,
-            'duration': duration,
-            'itinerary': response_text
+            'prompt': prompt,
+            'response': response_text
         }
 
         return jsonify(response_data)
 
     except Exception as e:
+        logging.error("Error in /chat endpoint", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
+# Configure for gunicorn
 if __name__ == "__main__":
-    app.run()
+    # If running directly
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+else:
+    # For gunicorn
+    application = app
