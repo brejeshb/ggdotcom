@@ -289,6 +289,8 @@ def chat():
                     Start by saying, You see [Point of interest]. Do not mention anything about the address in your answer.
                     Include only one specific landmark and describe in length the detail regarding it's history or context."""
             
+            print("PROMPT", prompt)
+
             # Call OpenAI API
             response = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
