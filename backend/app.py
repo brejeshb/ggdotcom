@@ -78,7 +78,7 @@ def chat():
                     fields=['name', 'rating', 'user_ratings_total', 
                            'formatted_address', 'opening_hours']
                 )
-                print("place", place_details)
+                print("places", places_result)
                 if gmaps_result and len(gmaps_result) > 0:
                     address = gmaps_result[0]['formatted_address']
                 else:
