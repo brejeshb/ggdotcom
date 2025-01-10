@@ -274,9 +274,9 @@ def chat():
                         else :
                             landmarks.append(place['name'])
                             selected_place = place['name']
-                            print("SELECTED PLACE: " , place)
+                            print("SELECTED PLACE: " , selected_place)
                             break
-                
+                            
                 if not selected_place:
                     return jsonify({'error': 'No unvisited places found nearby'}), 404
 
@@ -309,7 +309,8 @@ def chat():
                 'id': uuid.uuid4().hex,
                 'timestamp': datetime.now().isoformat(),
                 'prompt': prompt,
-                'response': response_text
+                'response': response_text,
+                'visitedPlace' : selected_place
             }
 
             try:
