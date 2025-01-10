@@ -46,12 +46,21 @@ def chat():
         # Receive coordinates
         location = data.get('location', "")
 
-        # Convert to address using API 
-
-        gmaps_data = gmap.reverse_geocode((location))
-        print(gmaps_data)
-
-        address = gmaps_data["results"]["formatted_address"]
+        try:
+            # Parse location string into lat, lng
+            lat, lng = map(float, location.split(','))
+            
+            # Get address using Google Maps
+            gmaps_result = gmap.reverse_geocode((lat, lng))
+            
+            if gmaps_result and len(gmaps_result) > 0:
+                address = gmaps_result[0]['formatted_address']
+            else:
+                address = location  # Fallback to coordinates if geocoding fails
+                
+        except Exception as e:
+            logging.error(f"Geocoding error: {str(e)}")
+            address = location  # Fallback to coordinates if there's an error
 
         # Add address to prompt
         prompt = f"""You are a Singapore Tour Guide, please provide details regarding the nearest point of interest in the nearby surrounding with the coordinates of
