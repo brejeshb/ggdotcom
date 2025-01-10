@@ -6,6 +6,7 @@ from datetime import datetime
 import uuid
 import os
 import logging
+import googlemaps
 import firebase_admin
 from firebase_admin import credentials
 
@@ -23,6 +24,9 @@ firebase_admin.initialize_app(cred)
 # Firestore Client
 db = firestore.client()
 
+#Initialize Google Maps Key
+gmap_key = os.getenv("GOOGLE_API_KEY")
+
 # Initialize OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
@@ -34,11 +38,25 @@ def home():
 def chat():
     try:
         data = request.get_json()
+
         
         if not data or 'prompt' not in data:
             return jsonify({'error': 'No prompt provided'}), 400
 
-        prompt = data['prompt']
+        # Receive coordinates
+        location = data.get('location', "")
+
+        # Convert to address using API 
+
+        gmaps_data = f"""https://maps.googleapis.com/maps/api/geocode/json?latlng={location}2&key={gmap_key}"""
+
+        address = gmaps_data["results"]["formatted_address"]
+
+        # Add address to prompt
+        prompt = f"""You are a Singapore Tour Guide, please provide details regarding the nearest point of interest in the nearby surrounding with the coordinates of
+        {address} where the user would be able to visually see.
+        Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
+        Include only one specific landmark and describe in detail regarding history or context."""
         
         # Call OpenAI API
         response = openai.chat.completions.create(
@@ -67,7 +85,7 @@ def chat():
                 'message_Id': "",
                 'chatText': response_text,
                 'image': "",
-                'location'
+                'location': location,
                 'userCheck': "",
             }
 
