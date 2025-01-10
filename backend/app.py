@@ -141,7 +141,7 @@ def chat():
         #END LOCATION WITH TEXT -------------------------------------------------------------
         
         #LOCATION WITH IMAGE CHECK ----------------------------------------
-        if not data or 'location' not in data or 'image' not in data:
+        elif not data or 'location' not in data or 'image' not in data:
             try:
                 image_data = data.get('image')
                 location = data.get('location', "")
@@ -226,7 +226,7 @@ def chat():
         #END LOCATION WITH IMAGE -------------------------------------------------------------
 
         #PURE LOCATION CHECK ----------------------------------------------------------------
-        if not data or 'location' not in data:
+        elif not data or 'location' not in data:
             try:
                 # Parse location string into lat, lng
                 location = data.get('location', "")
