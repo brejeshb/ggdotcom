@@ -32,7 +32,7 @@ def chat():
         prompt = data['prompt']
         
         # Call OpenAI API
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": prompt}
@@ -47,7 +47,7 @@ def chat():
         # Create response object
         response_data = {
             'id': uuid.uuid4().hex,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
             'prompt': prompt,
             'response': response_text
         }
