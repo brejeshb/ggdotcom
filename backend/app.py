@@ -253,7 +253,10 @@ def chat():
                 places_result = gmap.places_nearby(
                     location=(lat, lng),
                     radius=500,  # 500m radius
-                    type=['point_of_interest', 'tourist_attraction'],  # Specifically search for tourist attractions
+                    type=['tourist_attraction', 'museum', 'art_gallery', 'park', 'shopping_mall', 
+                        'hindu_temple', 'church', 'mosque', 'place_of_worship', 
+                        'amusement_park', 'aquarium', 'zoo', 
+                        'restaurant', 'cafe'],  # Specifically search for tourist attractions
                     language='en'  # Ensure English results
                         )
 
