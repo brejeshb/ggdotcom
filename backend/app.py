@@ -25,7 +25,7 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 #Initialize Google Maps Key
-gmap_key = os.getenv("GOOGLE_API_KEY")
+gmap = googlemaps.Client(key=os.getenv("GOOGLE_API_KEY"))
 
 # Initialize OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -48,7 +48,8 @@ def chat():
 
         # Convert to address using API 
 
-        gmaps_data = f"""https://maps.googleapis.com/maps/api/geocode/json?latlng={location}2&key={gmap_key}"""
+        gmaps_data = gmap.reverse_geocode((location))
+        print(gmaps_data)
 
         address = gmaps_data["results"]["formatted_address"]
 
