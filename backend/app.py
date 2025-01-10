@@ -287,20 +287,22 @@ def chat():
                 print(f"Geocoding error: {str(e)}")
 
             # Add address to prompt
-            prompt = f"""You are a friendly Singapore Tour Guide giving a walking tour. Please describe the notable landmark {selected_place} to a tourist at {address}.
+            prompt = f"""You are a friendly Singapore Tour Guide giving a walking tour. If {selected_place} matches with {address}, this means you are in a residential or developing area.
 
-            If {selected_place} is not a notable tourist landmark or is the same as {address}, instead describe the most interesting and culturally significant landmark nearby that a tourist would want to know about.
+            For residential/developing areas:
+            - Describe the most interesting aspects of the neighborhood or district you're in
+            - Mention any nearby parks, nature areas, or community spaces
+            - Include interesting facts about the area's development or future plans
+            - Focus on what makes this area unique in Singapore
 
-            Start by saying "You see [Point of interest name]" - making sure to name an actual landmark, not a generic area.
+            For tourist landmarks:
+            - Name and describe the specific landmark
+            - Share its historical significance and background
+            - Explain its cultural importance in Singapore
+            - Describe unique architectural features
+            - Include interesting facts that make it special
 
-            Then provide a rich, engaging description that includes:
-            - Historical significance and background
-            - Cultural importance in Singapore
-            - Unique architectural features or design elements (if applicable)
-            - Any interesting facts or stories that make this place special
-            - Why tourists find it worth visiting
-
-            Keep the tone conversational and engaging, as if speaking to tourists in person. Don't mention coordinates or exact addresses in your response."""
+            Start with "You see [Point of interest/Area name]" and keep the tone friendly and conversational, as if speaking to tourists in person. Don't mention exact addresses or coordinates."""
             
             print("PROMPT", prompt)
 
