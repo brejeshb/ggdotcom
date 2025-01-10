@@ -74,16 +74,13 @@ def chat():
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
 
-                #Initalize prompt with IMAGE
-                prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text that is given.
-                    You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
-                    Do not mention anything about coordinates.
-                    Answer what is given in the user's text and describe in detail regarding history or context that is applicable.
-                    Here is the Users text: {text_data}"""
+            #Initalize prompt with IMAGE
+            prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text that is given.
+                You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
+                Do not mention anything about coordinates.
+                Answer what is given in the user's text and describe in detail regarding history or context that is applicable.
+                Here is the Users text: {text_data}"""
                 
-            except Exception as e:
-                print(f"Error: Failed to store Location with Text - {str(e)}")
-
             try:
                 # create USER msg data for firestore
                 message_data = {
@@ -104,28 +101,28 @@ def chat():
             except Exception as e:
                 print(f"Error: Failed to add to Firestore - {str(e)}")
 
-                # Call OpenAI API
-                response = openai.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=500,
-                    temperature=0
-                )
+            # Call OpenAI API
+            response = openai.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500,
+                temperature=0
+            )
 
-                # Extract response text
-                response_text = response.choices[0].message.content
+            # Extract response text
+            response_text = response.choices[0].message.content
 
-                print(f"Response: {response_text}")
+            print(f"Response: {response_text}")
 
-                # Create response object
-                response_data = {
-                    'id': uuid.uuid4().hex,
-                    'timestamp': datetime.now().isoformat(),
-                    'prompt': prompt,
-                    'response': response_text
-                }
+            # Create response object
+            response_data = {
+                'id': uuid.uuid4().hex,
+                'timestamp': datetime.now().isoformat(),
+                'prompt': prompt,
+                'response': response_text
+            }
 
             try:
                 # create REPLY msg data for firestore
