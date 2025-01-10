@@ -74,9 +74,9 @@ def chat():
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
 
-            #Initalize prompt with IMAGE
+            #Initalize prompt with text
             prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text that is given.
-                You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
+                You are also given the user's address of {address} to provide more context in regards to the users location.
                 Do not mention anything about the address in your answer.
                 Answer what is given in the user's text and describe in detail regarding history or context that is applicable.
                 Here is the Users text: {text_data}"""
