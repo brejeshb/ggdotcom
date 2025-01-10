@@ -38,85 +38,268 @@ def home():
 def chat():
     try:
         data = request.get_json()
+        # Need factor cases with location, image (Base64)
+        # if there is user input, add in to DB as well
 
-        if not data or 'location' not in data:
-            return jsonify({'error': 'No location provided'}), 400
+        #LOCATION WITH TEXT -------------------------------------------------------------
+        if not data or 'location' not in data or 'text' not in data:
+            try:
+                #Get text data
+                text_data = data.get('text')
 
-        # Receive coordinates
-        location = data.get('location', "")
-        print(f"Location Received: {location}")
+                #Get location data
+                location = data.get('location', "")
+                print(f"Location Received: {location}")
+                lat, lng = map(float, location.split(','))
 
-        try:
-            # Parse location string into lat, lng
-            lat, lng = map(float, location.split(','))
-            
-            # Get address using Google Maps
-            gmaps_result = gmap.reverse_geocode((lat, lng))
-            
-            if gmaps_result and len(gmaps_result) > 0:
-                address = gmaps_result[0]['formatted_address']
-            else:
-                address = location  # Fallback to coordinates if geocoding fails
-            
-            print(f"Address: {address}")
+                # Get address using Google Maps
+                gmaps_result = gmap.reverse_geocode((lat, lng))
+                
+                if gmaps_result and len(gmaps_result) > 0:
+                    address = gmaps_result[0]['formatted_address']
+                else:
+                    address = location  # Fallback to coordinates if geocoding fails
+                
+                print(f"Address: {address}")
 
-        except Exception as e:
-            print(f"Geocoding error: {str(e)}")
-            address = location  # Fallback to coordinates if there's an error
+            except Exception as e:
+                print(f"Geocoding error: {str(e)}")
 
-        # Add address to prompt
-        prompt = f"""You are a Singapore Tour Guide, please provide details regarding the nearest point of interest in the nearby surrounding with the coordinates of
-                {address} where the user would be able to visually see.
-                Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
-                Include only one specific landmark and describe in detail regarding history or context."""
+                #Initalize prompt with IMAGE
+                prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text that is given.
+                    You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
+                    Do not mention anything about coordinates.
+                    Answer what is given in the user's text and describe in detail regarding history or context that is applicable.
+                    Here is the Users text: {text_data}"""
+                
+            except Exception as e:
+                print(f"Error: Failed to store Location with Text - {str(e)}")
+
+            try:
+                # create USER msg data for firestore
+                message_data = {
+                    'timestamp': datetime.now(),
+                    'message_Id': "",
+                    'chatText': text_data,
+                    'image': "",
+                    'location': location,
+                    'userCheck': "true",
+                }
+
+                #Add to firestore
+                db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+                .collection('messages').add(message_data)
+                
+                print("Success: Added to Firestore")
+
+            except Exception as e:
+                print(f"Error: Failed to add to Firestore - {str(e)}")
+
+                # Call OpenAI API
+                response = openai.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=500,
+                    temperature=0
+                )
+
+                # Extract response text
+                response_text = response.choices[0].message.content
+
+                print(f"Response: {response_text}")
+
+                # Create response object
+                response_data = {
+                    'id': uuid.uuid4().hex,
+                    'timestamp': datetime.now().isoformat(),
+                    'prompt': prompt,
+                    'response': response_text
+                }
+
+            try:
+                # create REPLY msg data for firestore
+                message_data = {
+                    'timestamp': datetime.now(),
+                    'message_Id': "",
+                    'chatText': response_text,
+                    'image': "",
+                    'location': location,
+                    'userCheck': "false",
+                }
+
+                #Add to firestore
+                db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+                .collection('messages').add(message_data)
+                
+                print("Success: Added to Firestore")
+            except Exception as e:
+                print(f"Error: Failed to add to Firestore - {str(e)}")
+
+            return jsonify(response_data)
+        #END LOCATION WITH TEXT -------------------------------------------------------------
         
-        # Call OpenAI API
-        response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500,
-            temperature=0
-        )
+        #LOCATION WITH IMAGE CHECK ----------------------------------------
+        if not data or 'location' not in data or 'image' not in data:
+            try:
+                image_data = data.get('image')
+                location = data.get('location', "")
+                print(f"Location Received: {location}")
+                lat, lng = map(float, location.split(','))
 
-        # Extract response text
-        response_text = response.choices[0].message.content
+                # Get address using Google Maps
+                gmaps_result = gmap.reverse_geocode((lat, lng))
+                
+                if gmaps_result and len(gmaps_result) > 0:
+                    address = gmaps_result[0]['formatted_address']
+                else:
+                    address = location  # Fallback to coordinates if geocoding fails
+                
+                print(f"Address: {address}")
 
-        print(f"Response: {response_text}")
+            except Exception as e:
+                print(f"Geocoding error: {str(e)}")
 
-        # Create response object
-        response_data = {
-            'id': uuid.uuid4().hex,
-            'timestamp': datetime.now().isoformat(),
-            'prompt': prompt,
-            'response': response_text
-        }
+            #Initalize prompt with IMAGE
+            prompt = f"""You are a Singapore Tour Guide, please provide details regarding the photo that is given.
+                You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
+                Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
+                Include only what is given in the photo and describe in detail regarding history or context."""
 
-        try:
-            # create msg data for firestore
-            message_data = {
-                'timestamp': datetime.now(),
-                'message_Id': "",
-                'chatText': response_text,
-                'image': "",
-                'location': location,
-                'userCheck': "",
+
+            # Call OpenAI API
+            response = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt,
+                            }, 
+                            {
+                                "type" : "image_url",
+                                "image_url": {"url": f"base64,{image_data}"}
+                            }
+                        ],
+                    },
+                ],
+                max_tokens=500,
+                temperature=0
+            )
+
+            # Extract response text
+            response_text = response.choices[0].message.content
+
+            print(f"Response: {response_text}")
+                
+            # Create response object
+            response_data = {
+                'id': uuid.uuid4().hex,
+                'timestamp': datetime.now().isoformat(),
+                'prompt': prompt,
+                'response': response_text
             }
 
-            #Add to firestore
-            db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
-            .collection('messages').add(message_data)
-            
-            print("Success: Added to Firestore")
-        except Exception as e:
-            print(f"Error: Failed to add to Firestore - {str(e)}")
+            try:
+                # create msg data for firestore
+                message_data = {
+                    'timestamp': datetime.now(),
+                    'message_Id': "",
+                    'chatText': response_text,
+                    'image': image_data,
+                    'location': location,
+                    'userCheck': "false",
+                }
 
-        return jsonify(response_data)
+                #Add to firestore
+                db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+                .collection('messages').add(message_data)
+                
+                print("Success: Added to Firestore")
+            except Exception as e:
+                print(f"Error: Failed to add to Firestore - {str(e)}")
+
+            return jsonify(response_data)
+        #END LOCATION WITH IMAGE -------------------------------------------------------------
+
+        #PURE LOCATION CHECK ----------------------------------------------------------------
+        if not data or 'location' not in data:
+            try:
+                # Parse location string into lat, lng
+                location = data.get('location', "")
+                print(f"Location Received: {location}")
+                lat, lng = map(float, location.split(','))
+                
+                # Get address using Google Maps
+                gmaps_result = gmap.reverse_geocode((lat, lng))
+                
+                if gmaps_result and len(gmaps_result) > 0:
+                    address = gmaps_result[0]['formatted_address']
+                else:
+                    address = location  # Fallback to coordinates if geocoding fails
+                
+                print(f"Address: {address}")
+
+            except Exception as e:
+                print(f"Geocoding error: {str(e)}")
+
+            # Add address to prompt
+            prompt = f"""You are a Singapore Tour Guide, please provide details regarding the nearest point of interest in the nearby surrounding with the address of
+                    {address} where the user would be able to visually see.
+                    Start by saying, You see [Point of interest]. Do not mention anything about coordinates.
+                    Include only one specific landmark and describe in detail regarding history or context."""
+            
+            # Call OpenAI API
+            response = openai.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500,
+                temperature=0
+            )
+
+            # Extract response text
+            response_text = response.choices[0].message.content
+
+            print(f"Response: {response_text}")
+
+            # Create response object
+            response_data = {
+                'id': uuid.uuid4().hex,
+                'timestamp': datetime.now().isoformat(),
+                'prompt': prompt,
+                'response': response_text
+            }
+
+            try:
+                # create msg data for firestore
+                message_data = {
+                    'timestamp': datetime.now(),
+                    'message_Id': "",
+                    'chatText': response_text,
+                    'image': "",
+                    'location': location,
+                    'userCheck': "false",
+                }
+
+                #Add to firestore
+                db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+                .collection('messages').add(message_data)
+                
+                print("Success: Added to Firestore")
+            except Exception as e:
+                print(f"Error: Failed to add to Firestore - {str(e)}")
+
+            return jsonify(response_data)
 
     except Exception as e:
         logging.error("Error in /chat endpoint", exc_info=True)
         return jsonify({'error': str(e)}), 500
+    #END PURE LOCATION CHECK ----------------------------------------------------------------
 
 @app.route('/messages', methods = ['GET'])
 def retrieve():
