@@ -90,7 +90,7 @@ def retrieve():
     try:    
         messages = db.collection('tour').document("yDLsVQhwoDF9ZHoG0Myk")\
                     .collection('messages')\
-                    .order_by('timeStamp')\
+                    .order_by('timestamp', direction='desc' )\
                     .stream()
         
         message_list = []
@@ -99,7 +99,6 @@ def retrieve():
             msg_data = msg.to_dict()
             msg_data['id'] = msg.id
             # Convert timestamp to string for JSON serialization
-            msg_data['timestamp'] = msg_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
             message_list.append(msg_data)
         
         return jsonify(message_list), 200
