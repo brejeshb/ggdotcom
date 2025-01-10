@@ -63,7 +63,22 @@ def chat():
 
                 # Get address using Google Maps
                 gmaps_result = gmap.reverse_geocode((lat, lng))
+
+                # Get nearby tourist attractions
+                places_result = gmap.places_nearby(
+                    location=(lat, lng),
+                    radius=500,  # 500m radius
+                    type='tourist_attraction',  # Specifically search for tourist attractions
+                    language='en'  # Ensure English results
+                        )
                 
+                place = places_result['results'][0]
+                place_details = gmap.place(
+                    place['place_id'],
+                    fields=['name', 'rating', 'user_ratings_total', 
+                           'formatted_address', 'opening_hours']
+                )
+                print("place", place_details)
                 if gmaps_result and len(gmaps_result) > 0:
                     address = gmaps_result[0]['formatted_address']
                 else:
