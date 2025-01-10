@@ -44,7 +44,7 @@ def chat():
 
         # Receive coordinates
         location = data.get('location', "")
-        print(jsonify({"Location Received: " + location}))
+        print(f"Location Received: {location}")
 
         try:
             # Parse location string into lat, lng
@@ -58,10 +58,10 @@ def chat():
             else:
                 address = location  # Fallback to coordinates if geocoding fails
             
-            print(jsonify({"address: " + address}))
+            print(f"Address: {address}")
 
         except Exception as e:
-            print(jsonify({f"Geocoding error: {str(e)}"}))
+            print(f"Geocoding error: {str(e)}")
             address = location  # Fallback to coordinates if there's an error
 
         # Add address to prompt
@@ -83,7 +83,7 @@ def chat():
         # Extract response text
         response_text = response.choices[0].message.content
 
-        print(jsonify({"Response: " + response_text}))
+        print(f"Response: {response_text}")
 
         # Create response object
         response_data = {
@@ -108,11 +108,9 @@ def chat():
             db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
             .collection('messages').add(message_data)
             
-            print(jsonify({"success": True}), 200)
-            print(jsonify({"Added to Firestore"}))
+            print("Success: Added to Firestore")
         except Exception as e:
-            print(jsonify({"error": str(e)}), 400)
-            print(jsonify({"Failed to add to Firestore"}))
+            print(f"Error: Failed to add to Firestore - {str(e)}")
 
         return jsonify(response_data)
 
