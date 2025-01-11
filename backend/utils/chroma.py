@@ -1,5 +1,11 @@
 import chromadb
-from config import get_chroma_settings
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from backend.config import get_chroma_settings
+
+
+
 class ChromaDBManager:
     def __init__(self):
         settings = get_chroma_settings()

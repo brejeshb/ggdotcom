@@ -10,7 +10,10 @@ from datetime import datetime
 import urllib.parse
 import logging
 from difflib import SequenceMatcher
-from config import get_chroma_settings
+
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from backend.config import get_chroma_settings
 import re
 
 logging.basicConfig(level=logging.INFO)
