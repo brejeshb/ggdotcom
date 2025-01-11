@@ -42,13 +42,24 @@ def get_rag_information(place_name: str) -> Dict[str, List[str]]:
     """Fetch contextual information using local RAG manager"""
     try:
         print(f"Querying RAG for place: {place_name}")
+        # Add collection check
+        collections = rag_manager.collections
+        print(f"Available collections: {collections}")
+        
+        # Try to get the collection and its count
+        try:
+            wiki_collection = rag_manager.client.get_collection("wikipedia_collection")
+            count = wiki_collection.count()
+            print(f"Wikipedia collection exists with {count} documents")
+        except Exception as e:
+            print(f"Error accessing wikipedia collection: {e}")
+        
         results = rag_manager.query_place(place_name, limit=3)
-        print("RAG query completed")
+        print(f"RAG query results: {results}")  # This will show what data was found
         return results
     except Exception as e:
         print(f"Error in RAG query: {str(e)}")
         return {}
-
 
 def create_chat_messages(prompt: str, context: Dict[str, List[str]], is_image: bool = False, image_data: str = None) -> List[dict]:
     """Create chat messages with proper context integration"""

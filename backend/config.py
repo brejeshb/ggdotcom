@@ -10,10 +10,10 @@ CHROMA_SSL = os.getenv('CHROMA_SSL', 'false').lower() == 'true'
 
 def get_chroma_settings():
     return {
-        "chroma_host": CHROMA_HOST,
-        "chroma_port": CHROMA_PORT,
-        "chroma_api_key": CHROMA_API_KEY,
-        "chroma_ssl": CHROMA_SSL,
-        "storage": "filesystem",
-        "path": "/mnt/data/chromadb"
+        "chroma_host": os.getenv("CHROMA_HOST"),
+        "chroma_port": int(os.getenv("CHROMA_PORT", "8000")),
+        "chroma_ssl": os.getenv("CHROMA_SSL", "true").lower() == "true",
+        "chroma_api_key": os.getenv("CHROMA_API_KEY"),
+        "persist_directory": "./chroma_db",
+        "allow_reset": True
     }
