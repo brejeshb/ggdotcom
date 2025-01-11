@@ -38,23 +38,46 @@ class RAGManager:
             self._restore_from_backup("wikipedia_collection")
 
     def _restore_from_backup(self, collection_name: str):
-        """Restore collection from Firebase backup"""
+        """Restore collection from Firebase backup using binary files"""
         try:
+            # Load binary data from Firebase
             backup_data = self.firebase_backup.load_collection(collection_name)
-            if backup_data and all(key in backup_data for key in ['documents', 'embeddings', 'metadatas', 'ids']):
+            
+            if backup_data and all(key in backup_data for key in ['data_level0', 'header', 'length', 'link_lists']):
+                # Create a new collection
                 collection = self.client.create_collection(collection_name)
-                collection.add(
-                    documents=backup_data["documents"],
-                    embeddings=backup_data["embeddings"],
-                    metadatas=backup_data["metadatas"],
-                    ids=backup_data["ids"]
-                )
+                
+                # Create temporary directory to store binary files
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Write binary files to temporary directory
+                    file_mapping = {
+                        'data_level0': 'data_level0.bin',
+                        'header': 'header.bin',
+                        'length': 'length.bin',
+                        'link_lists': 'link_lists.bin'
+                    }
+                    
+                    for key, filename in file_mapping.items():
+                        if key in backup_data:
+                            file_path = os.path.join(temp_dir, filename)
+                            with open(file_path, 'wb') as f:
+                                f.write(backup_data[key])
+                    
+                    # Load the binary files into the collection
+                    # Note: You might need to adjust this part based on your ChromaDB version
+                    # and specific requirements for loading binary data
+                    collection.load(temp_dir)
+                    
                 self.collections["wikipedia"] = collection
                 print(f"Successfully restored {collection_name} from Firebase backup")
             else:
                 print(f"Incomplete or missing backup data for {collection_name}")
+                print("Required files: data_level0.bin, header.bin, length.bin, link_lists.bin")
+                print("Found files:", list(backup_data.keys()) if backup_data else "None")
+                
         except Exception as e:
             print(f"Error restoring from backup: {str(e)}")
+            print(f"Backup data structure: {backup_data.keys() if backup_data else 'None'}")
 
     def query_place(self, place_name: str, limit: int = 3, similarity_threshold: float = 0.5) -> dict:
         """Query collections and penalize irrelevant results based on similarity score and return empty if no relevant results."""
