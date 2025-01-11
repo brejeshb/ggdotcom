@@ -8,7 +8,8 @@ import sys
 import os
 import json
 from typing import Dict, List
-from firebase_backup import FirebaseBackup
+from utils.firebase_backup import FirebaseBackup
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from backend.config import get_chroma_settings, get_firebase_backup
 
