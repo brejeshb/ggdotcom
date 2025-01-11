@@ -110,6 +110,17 @@ if __name__ == '__main__':
     app = Flask(__name__)
     CORS(app)
 
+    @app.route('/chromadb', defaults={'path': ''})
+    @app.route('/chromadb<path:path>', methods=['HEAD'])
+    def ping(path):
+        try:
+            # Check ChromaDB connectivity
+            rag_manager.client.heartbeat()
+            return '', 200
+        except Exception as e:
+            app.logger.error(f"Health check failed: {str(e)}")
+            return '', 503
+
     @app.route('/RAG', methods=['POST'])
     def query_location():
         try:
