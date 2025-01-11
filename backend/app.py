@@ -677,7 +677,7 @@ def test():
 
             # Call OpenAI API
 
-            context = get_rag_information(address)
+            context = get_rag_information(text_data)
 
 
             messages = create_chat_messages(prompt, context)
