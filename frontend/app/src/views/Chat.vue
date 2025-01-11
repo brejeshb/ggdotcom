@@ -11,7 +11,24 @@
             <img class="w-24 h-24 object-contain" src="../assets/SGpin.png">
           </div>
           <p class="text-2xl font-semibold">Welcome to your AI-powered tour!</p>
-          <p class="mt-2 text-lg">Start by asking a question or capturing an image.</p>
+          <button 
+            class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mb-4"
+            @click="beginTour"
+          >
+            Begin Tour
+          </button>
+          <!-- TTS Test Button -->
+<button 
+  @click="testTTS"
+  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+>
+  Test TTS
+</button>
+
+          <!-- Loading Spinner -->
+          <div v-if="loading" class="flex items-center justify-center mt-4">
+            <div class="animate-spin w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"></div>
+          </div>
         </div>
       </div>
       <div v-for="(message, index) in messages" :key="index" class="animate-fade-in-up">
@@ -40,8 +57,11 @@
         />
       </div>
     </main>
-    <footer class="bg-white border-t border-gray-300 p-6 rounded-t-3xl">
+    <footer class="bg-white border-t border-gray-300 p-6 rounded-t-3xl" v-if="showFooter">
       <div class="flex items-center justify-between mb-4">
+        <button @click="sendLocation" class='bg-red-600 hover:bg-red-700'>
+        send location
+        </button>
         <button
           @click="toggleRecording"
           class="relative group"
@@ -141,12 +161,15 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../store'
 import { useGeolocation } from '@vueuse/core'
 import imageCompression from 'browser-image-compression'
+import axios from 'axios'
 
 const store = useAppStore()
 const userInput = ref('')
 const { messages, isPaused } = store
 const fileInput = ref(null)
 const recording = ref(false)
+const showFooter = ref(false)
+
 
 const { coords, resume, pause } = useGeolocation()
 
@@ -154,16 +177,32 @@ const recognition = ref(null)
 const isRecognitionSupported = ref(false)
 const synth = window.speechSynthesis
 const utterance = ref(null)
+const loading = ref(false)
+
 
 //for visited places 
 const visitedPlaces = ref([])
 
+const testTTS = () => {
+  const testText = "This is a test for the text-to-speech functionality.";
+  console.log('button pressed')
+  speakText(testText);
+};
+
+
 onMounted(() => {
-  resume()
-  checkSpeechRecognitionSupport()
-  const storedPlaces = JSON.parse(sessionStorage.getItem('visitedPlaces')) || []
-  visitedPlaces.value = storedPlaces
-})
+  resume();
+  checkSpeechRecognitionSupport();
+
+  // Ensure the footer is visible when the component is mounted
+  if (messages.length > 0) {
+    showFooter.value = true;
+  }
+
+  const storedPlaces = JSON.parse(sessionStorage.getItem('visitedPlaces')) || [];
+  visitedPlaces.value = storedPlaces;
+});
+
 
 const updateVisitedPlaces = (newPlace) => {
   if (!visitedPlaces.value.includes(newPlace)) {
@@ -177,6 +216,95 @@ onUnmounted(() => {
   stopRecognition()
   stopSpeech()
 })
+
+//send initial location on begin tour
+const beginTour = async () => {
+  loading.value = true;  // Set loading to true
+  try {
+    const latitude = coords.value.latitude
+    const longitude = coords.value.longitude
+    const location = `${latitude},${longitude}`
+
+    console.log(`Sending location: ${location}`)
+    const payload = {
+      location: location,
+    }
+
+    const response = await fetch('https://ggdotcom.onrender.com/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to get response from backend')
+    }
+
+    const data = await response.json()
+    console.log(data)
+
+    visitedPlaces.value.push(data.visitedPlace)
+
+    store.addMessage({ text: data.response, isUser: false })
+    speakText(data.response)
+    showFooter.value = true;
+
+  } catch (error) {
+    store.addMessage({ text: "Error starting tour.", isUser: false })
+    console.error("Error starting tour:", error)
+  } finally {
+    loading.value = false;  // Set loading to false when done
+  }
+}
+
+
+const sendLocation = async () => {
+  loading.value = true; // Set loading to true
+  try {
+    const latitude = coords.value.latitude;
+    const longitude = coords.value.longitude;
+    const location = `${latitude},${longitude}`;
+
+    console.log(`Sending location: ${location}`);
+    const payload = {
+      location,
+      visitedPlaces: visitedPlaces.value, // Include visitedPlaces in the payload
+    };
+
+    const response = await fetch('https://ggdotcom.onrender.com/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to send location to backend');
+    }
+
+    const data = await response.json();
+    console.log("Location response:", data);
+
+    // Append the visited place to the visitedPlaces array
+    visitedPlaces.value.push(data.visitedPlace);
+
+    // Display the AI's response in the chat
+    store.addMessage({ text: data.response, isUser: false });
+
+    // Optionally use text-to-speech to read out the response
+    speakText(data.response);
+
+  } catch (error) {
+    console.error("Error sending location:", error);
+    store.addMessage({ text: "Error sending location.", isUser: false });
+  } finally {
+    loading.value = false; // Set loading to false
+  }
+};
+
 
 const checkSpeechRecognitionSupport = () => {
   if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -255,7 +383,7 @@ const toggleRecording = () => {
 
 const startRecognition = () => {
   if (recognition.value) {
-    try {
+    try { 
       recognition.value.start()
     } catch (error) {
       if (error.name === 'NotAllowedError') {
@@ -307,7 +435,7 @@ const sendMessage = async () => {
       const data = await response.json()
 
       // Process the response and update visitedPlaces
-      console.log(data.response)
+      console.log(data)
       store.addMessage({ text: data.response, isUser: false })
       speakText(data.response)
 
@@ -335,6 +463,7 @@ const getImageDescription = async (imageDataUrl, location) => {
     const payload = {
       image: imageDataUrl,
       location: location,
+      visitedPlaces: visitedPlaces.value, 
     };
 
     const response = await fetch('https://ggdotcom.onrender.com/chat', {
@@ -392,17 +521,14 @@ const onImageCapture = async (event) => {
         });
 
         try {
-          // Send the compressed image and location to the backend
           const response = await getImageDescription(imageDataUrl, location);
 
-          // Log the backend response for debugging
           console.log('Backend response:', response);
 
-          // Add the response message to the store
           store.addMessage({ text: response.response, isUser: false });
 
           console.log(`response is ${response.response}`)
-          // Convert the message text to speech
+
           speakText(response.response);
         } catch (error) {
           store.addMessage({ text: "Error processing image.", isUser: false });
@@ -434,11 +560,24 @@ const onImageCapture = async (event) => {
 //   }
 // }
 
-const speakText = (text) => {
-  stopSpeech()
-  utterance.value = new SpeechSynthesisUtterance(text)
-  synth.speak(utterance.value)
-}
+const speakText = async (text) => {
+  try {
+    const response = await axios.post('../../api/speech.js', { text });
+    const { audioUrl } = response.data;
+
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audio.play();
+    } else {
+      console.error('No audio URL returned from the server');
+    }
+  } catch (error) {
+    console.error('Error during TTS request:', error);
+  }
+};
+
+
+
 
 const stopSpeech = () => {
   if (synth.speaking) {

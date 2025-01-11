@@ -5,7 +5,7 @@
       to="/chat"
       class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mb-4"
     >
-      Start Tour
+      AI Tour Guide
     </router-link>
     <router-link
       to="/history"
