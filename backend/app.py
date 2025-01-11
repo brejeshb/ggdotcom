@@ -74,7 +74,7 @@ def chat():
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
             
-                image_data = data.get('image')
+            image_data = data.get('image')
 
             try:
                 # Check if it already has the prefix
