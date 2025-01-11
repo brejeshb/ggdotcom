@@ -50,8 +50,139 @@ def chat():
         # print(f"Image: {image}")
         print(f"Text: {text}")
 
+        # LOCATION WITH IMAGE WITH TEXT
+        if location and text and image:
+            try:
+                #Get text data
+                text_data = data.get('text')
+
+                #Get location data
+                location = data.get('location', "")
+                print(f"Location Received: {location}")
+                lat, lng = map(float, location.split(','))
+
+                # Get address using Google Maps
+                gmaps_result = gmap.reverse_geocode((lat, lng))
+
+                if gmaps_result and len(gmaps_result) > 0:
+                    address = gmaps_result[0]['formatted_address']
+                else:
+                    address = location  # Fallback to coordinates if geocoding fails
+                
+                print(f"Address: {address}")
+
+            except Exception as e:
+                print(f"Geocoding error: {str(e)}")
+            
+                image_data = data.get('image')
+
+            try:
+                # Check if it already has the prefix
+                if image_data.startswith('data:image/jpeg;base64,'):
+                    # Remove the prefix to clean the base64 string
+                    base64_string = image_data.replace('data:image/jpeg;base64,', '')
+                else:
+                    base64_string = image_data
+                    
+                # Remove any whitespace or newlines
+                base64_string = base64_string.strip().replace('\n', '').replace('\r', '')
+                
+                # Add the prefix back to image_data
+                image_data = f"data:image/jpeg;base64,{base64_string}"
+            except Exception as e:
+                print(f"Error cleaning base64 image: {str(e)}")
+                raise ValueError("Invalid base64 image data")
+
+            #Initalize prompt with text
+            prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text and photo that is given.
+                You are also given the user's address of {address} to provide more context in regards to the users location.
+                Do not mention the address in your answer.
+                Answer what is given in the user's text and photo and describe in detail regarding history or context that is applicable.
+                Here is the Users text: {text_data}"""
+
+            print(prompt)
+                
+            try:
+                # create USER msg data for firestore
+                message_data = {
+                    'timestamp': datetime.now(),
+                    'message_Id': "",
+                    'chatText': text_data,
+                    'image': "",
+                    'location': location,
+                    'userCheck': "true",
+                }
+
+                #Add to firestore
+                db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+                .collection('messages').add(message_data)
+                
+                print("Success: Added to Firestore")
+
+            except Exception as e:
+                print(f"Error: Failed to add to Firestore - {str(e)}")
+
+            # Call OpenAI API
+            response = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt,
+                            }, 
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": image_data
+                                }
+                            }
+                        ],
+                    },
+                ],
+                max_tokens=500,
+                temperature=0
+            )
+
+            # Extract response text
+            response_text = response.choices[0].message.content
+
+            print(f"Response: {response_text}")
+
+            # Create response object
+            response_data = {
+                'id': uuid.uuid4().hex,
+                'timestamp': datetime.now().isoformat(),
+                'prompt': prompt,
+                'response': response_text
+            }
+
+            try:
+                # create REPLY msg data for firestore
+                message_data = {
+                    'timestamp': datetime.now(),
+                    'message_Id': "",
+                    'chatText': response_text,
+                    'image': image_data,
+                    'location': location,
+                    'userCheck': "false",
+                }
+
+                #Add to firestore
+                db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+                .collection('messages').add(message_data)
+                
+                print("Success: Added to Firestore")
+            except Exception as e:
+                print(f"Error: Failed to add to Firestore - {str(e)}")
+
+            return jsonify(response_data)
+        #END LOCATION WITH TEXT WITH IMAGE -------------------------------------------------------------
+
         #LOCATION WITH TEXT -------------------------------------------------------------
-        if location and text:
+        elif location and text:
             try:
                 #Get text data
                 text_data = data.get('text')
