@@ -651,6 +651,8 @@ def test():
             #Initalize prompt with text
             prompt = f"""{text_data}"""
 
+
+
             print(prompt)
                 
             # try:
@@ -674,19 +676,27 @@ def test():
             #     print(f"Error: Failed to add to Firestore - {str(e)}")
 
             # Call OpenAI API
+
+            context = get_rag_information(address)
+
+
+            messages = create_chat_messages(prompt, context)
+
             response = openai.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt,
-                            }, 
-                        ],
-                    },
-                ],
+                messages= messages,
+                
+                # [
+                #     {
+                #         "role": "user",
+                #         "content": [
+                #             {
+                #                 "type": "text",
+                #                 "text": prompt,
+                #             }, 
+                #         ],
+                #     },
+                # ],
                 max_tokens=500,
                 temperature=0
             )
