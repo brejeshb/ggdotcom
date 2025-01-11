@@ -604,7 +604,7 @@ def chat():
 
             # Call OpenAI API
             response = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="o1-preview",
                 messages=messages,
                 
                 # [
