@@ -1,16 +1,15 @@
 <template>
   <div class="flex flex-col h-screen bg-white">
-    <header class="bg-white text-gray-800 p-6 shadow-lg rounded-b-3xl">
-      <h1 class="text-3xl font-extrabold text-center text-red-600">AI Tour Guide</h1>
-    </header>
+    <!-- <header class="bg-white text-gray-800 p-6 shadow-lg rounded-b-3xl">
+      <h1 class="text-3xl font-extrabold text-center text-red-600"></h1>
+    </header> -->
 
     <main class="flex-grow overflow-y-auto p-6 space-y-6">
       <div v-if="messages.length === 0" class="flex items-center justify-center h-full">
         <div class="text-center text-gray-800 space-y-4">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto mb-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          <div class="flex justify-center items-center">
+            <img class="w-24 h-24 object-contain" src="../assets/SGpin.png">
+          </div>
           <p class="text-2xl font-semibold">Welcome to your AI-powered tour!</p>
           <p class="mt-2 text-lg">Start by asking a question or capturing an image.</p>
         </div>
@@ -90,7 +89,7 @@
           </svg>
         </button>
 
-        <button
+        <!-- <button
           @click="togglePause"
           :class="[
             'font-bold p-3 rounded-full transition-all duration-300 ease-in-out',
@@ -104,7 +103,7 @@
           <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </button>
+        </button> -->
       </div>
 
       <div class="flex">
@@ -141,7 +140,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../store'
 import { useGeolocation } from '@vueuse/core'
-// import { getTextResponse, getSpeechResponse, getImageDescription, getLocationDescription } from '../MockApi'
 import imageCompression from 'browser-image-compression'
 
 const store = useAppStore()
@@ -427,14 +425,14 @@ const onImageCapture = async (event) => {
 
 
 
-const togglePause = () => {
-  store.setPaused(!isPaused)
-  if (isPaused) {
-    resume()
-  } else {
-    pause()
-  }
-}
+// const togglePause = () => {
+//   store.setPaused(!isPaused)
+//   if (isPaused) {
+//     resume()
+//   } else {
+//     pause()
+//   }
+// }
 
 const speakText = (text) => {
   stopSpeech()
