@@ -176,6 +176,23 @@ def chat():
                 Include only what is given in the photo and describe in detail regarding history or context."""
 
 
+            try:
+                # Check if it already has the prefix
+                if image_data.startswith('data:image/jpeg;base64,'):
+                    # Remove the prefix to clean the base64 string
+                    base64_string = image_data.replace('data:image/jpeg;base64,', '')
+                else:
+                    base64_string = image_data
+                    
+                # Remove any whitespace or newlines
+                base64_string = base64_string.strip().replace('\n', '').replace('\r', '')
+                
+                # Add the prefix back to image_data
+                image_data = f"data:image/jpeg;base64,{base64_string}"
+            except Exception as e:
+                print(f"Error cleaning base64 image: {str(e)}")
+                raise ValueError("Invalid base64 image data")
+
             # Call OpenAI API
             response = openai.chat.completions.create(
                 model="gpt-4o-mini",
@@ -189,8 +206,10 @@ def chat():
                             }, 
                             {
                                 "type": "image_url",
-                                "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
-                            },
+                                "image_url": {
+                                    "url": image_data
+                                }
+                            }
                         ],
                     },
                 ],
