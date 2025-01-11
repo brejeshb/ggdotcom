@@ -21,9 +21,14 @@ logging.basicConfig(level=logging.ERROR)
 app = Flask(__name__)
 CORS(app)
 
-# Firestore initialization
-cred = credentials.Certificate("./ggdotcom-254aa-firebase-adminsdk-1nske-fd0d2cac2a.json")
-firebase_admin.initialize_app(cred)
+# Firebase initialization - ensure it's only done once
+try:
+    # Try to get the default app; if it doesn't exist, we'll initialize it
+    firebase_admin.get_app()
+except ValueError:
+    # If the default app isn't initialized, initialize it here
+    cred = credentials.Certificate("./ggdotcom-254aa-firebase-adminsdk-1nske-fd0d2cac2a.json")
+    firebase_admin.initialize_app(cred)
 
 # Firestore Client
 db = firestore.client()
