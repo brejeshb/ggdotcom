@@ -1,8 +1,11 @@
 <template>
   <div class="flex flex-col h-screen bg-white">
-    <!-- <header class="bg-white text-gray-800 p-6 shadow-lg rounded-b-3xl">
-      <h1 class="text-3xl font-extrabold text-center text-red-600"></h1>
-    </header> -->
+    <!-- Header with Back Button -->
+    <header class="flex items-center justify-start bg-white p-4 shadow-md">
+      <router-link to="/" class="flex items-center text-red-600 hover:text-red-700 font-semibold text-lg">
+        ←
+      </router-link>
+    </header>
 
     <main class="flex-grow overflow-y-auto p-6 space-y-6">
       <div v-if="messages.length === 0" class="flex items-center justify-center h-full">
@@ -17,14 +20,7 @@
           >
             Begin Tour
           </button>
-          <!-- TTS Test Button -->
-<button 
-  @click="testTTS"
-  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
->
-  Test TTS
-</button>
-
+          
           <!-- Loading Spinner -->
           <div v-if="loading" class="flex items-center justify-center mt-4">
             <div class="animate-spin w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"></div>
@@ -57,11 +53,21 @@
         />
       </div>
     </main>
+
     <footer class="bg-white border-t border-gray-300 p-6 rounded-t-3xl" v-if="showFooter">
       <div class="flex items-center justify-between mb-4">
-        <button @click="sendLocation" class='bg-red-600 hover:bg-red-700'>
-        send location
+        <button
+          @click="runSimulator"
+          :class="[
+            'px-4 py-2 text-lg font-semibold rounded transition-all duration-300',
+            isRunning ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600',
+            'disabled:opacity-50 disabled:cursor-not-allowed'
+          ]"
+          :disabled="loading"
+        >
+          {{ isRunning ? (currentIndex >= locations.length ? "Run Simulator" : "Pause Simulator") : "Run Simulator" }}
         </button>
+
         <button
           @click="toggleRecording"
           class="relative group"
@@ -97,8 +103,6 @@
             {{ recording ? 'Stop Recording' : 'Start Recording' }}
           </span>
         </button>
-
-
         <button
           @click="captureImage"
           class="bg-red-600 hover:bg-red-700 text-white font-bold p-3 rounded-full transition-all duration-300 ease-in-out"
@@ -108,22 +112,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
-
-        <!-- <button
-          @click="togglePause"
-          :class="[
-            'font-bold p-3 rounded-full transition-all duration-300 ease-in-out',
-            isPaused ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800'
-          ]"
-        >
-          <svg v-if="isPaused" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button> -->
       </div>
 
       <div class="flex">
@@ -156,12 +144,14 @@
   </div>
 </template>
 
+
+
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../store'
 import { useGeolocation } from '@vueuse/core'
 import imageCompression from 'browser-image-compression'
-import axios from 'axios'
+
 
 const store = useAppStore()
 const userInput = ref('')
@@ -183,12 +173,104 @@ const loading = ref(false)
 //for visited places 
 const visitedPlaces = ref([])
 
-const testTTS = () => {
-  const testText = "This is a test for the text-to-speech functionality.";
-  console.log('button pressed')
-  speakText(testText);
+//for simulator
+const isRunning = ref(false); // Tracks whether the simulation is running
+const currentIndex = ref(0); // Tracks the current location index
+let intervalId = null; // Holds the interval ID
+
+//simulator locations
+const locations = [
+  "1.2831,103.8431", // Chinatown Point
+  "1.2828,103.8442", // Maxwell Food Centre
+  "1.2823,103.8435", // Sago Street
+  "1.2798,103.8412", // Ann Siang Hill
+];
+
+const runSimulator = async () => {
+  if (isRunning.value) {
+    // Pause simulation
+    clearInterval(intervalId);
+    intervalId = null;
+    isRunning.value = false;
+    return;
+  }
+
+  // Start simulation
+  isRunning.value = true;
+
+  // Send the first location instantly
+  if (currentIndex.value < locations.length) {
+    const [latitude, longitude] = locations[currentIndex.value].split(",");
+    coords.value = { latitude, longitude }; // Simulate location change
+    console.log(`Sending simulated location (instant): ${locations[currentIndex.value]}`);
+    await sendLocation();
+    currentIndex.value += 1; // Move to the next location
+  }
+
+  // Start the interval for subsequent locations
+  intervalId = setInterval(async () => {
+    if (currentIndex.value >= locations.length) {
+      // Stop the simulation when all locations are sent
+      clearInterval(intervalId);
+      intervalId = null;
+      isRunning.value = false;
+      currentIndex.value = 0; // Reset the index
+      return;
+    }
+
+    const [latitude, longitude] = locations[currentIndex.value].split(",");
+    coords.value = { latitude, longitude }; // Simulate location change
+    console.log(`Sending simulated location: ${locations[currentIndex.value]}`);
+    await sendLocation();
+    currentIndex.value += 1; // Move to the next location
+  }, 20000); // 20-second interval
 };
 
+
+const sendLocation = async () => {
+  loading.value = true; 
+  try {
+    const latitude = coords.value.latitude;
+    const longitude = coords.value.longitude;
+    const location = `${latitude},${longitude}`;
+
+    console.log(`Sending location: ${location}`);
+    const payload = {
+      location,
+      visitedPlaces: visitedPlaces.value,
+    };
+    
+    const response = await fetch('https://ggdotcom.onrender.com/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to send location to backend');
+    }
+
+    const data = await response.json();
+    console.log("Location response:", data);
+
+    // Append the visited place to the visitedPlaces array
+    visitedPlaces.value.push(data.visitedPlace);
+
+    // Display the AI's response in the chat
+    store.addMessage({ text: data.response, isUser: false });
+
+    // Optionally use text-to-speech to read out the response
+    speakText(data.response);
+
+  } catch (error) {
+    console.error("Error sending location:", error);
+    store.addMessage({ text: "Error sending location.", isUser: false });
+  } finally {
+    loading.value = false; // Set loading to false
+  }
+};
 
 onMounted(() => {
   resume();
@@ -258,53 +340,6 @@ const beginTour = async () => {
     loading.value = false;  // Set loading to false when done
   }
 }
-
-
-const sendLocation = async () => {
-  loading.value = true; // Set loading to true
-  try {
-    const latitude = coords.value.latitude;
-    const longitude = coords.value.longitude;
-    const location = `${latitude},${longitude}`;
-
-    console.log(`Sending location: ${location}`);
-    const payload = {
-      location,
-      visitedPlaces: visitedPlaces.value, // Include visitedPlaces in the payload
-    };
-
-    const response = await fetch('https://ggdotcom.onrender.com/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to send location to backend');
-    }
-
-    const data = await response.json();
-    console.log("Location response:", data);
-
-    // Append the visited place to the visitedPlaces array
-    visitedPlaces.value.push(data.visitedPlace);
-
-    // Display the AI's response in the chat
-    store.addMessage({ text: data.response, isUser: false });
-
-    // Optionally use text-to-speech to read out the response
-    speakText(data.response);
-
-  } catch (error) {
-    console.error("Error sending location:", error);
-    store.addMessage({ text: "Error sending location.", isUser: false });
-  } finally {
-    loading.value = false; // Set loading to false
-  }
-};
-
 
 const checkSpeechRecognitionSupport = () => {
   if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -383,7 +418,7 @@ const toggleRecording = () => {
 
 const startRecognition = () => {
   if (recognition.value) {
-    try { 
+    try {
       recognition.value.start()
     } catch (error) {
       if (error.name === 'NotAllowedError') {
@@ -560,24 +595,11 @@ const onImageCapture = async (event) => {
 //   }
 // }
 
-const speakText = async (text) => {
-  try {
-    const response = await axios.post('../../api/speech.js', { text });
-    const { audioUrl } = response.data;
-
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      audio.play();
-    } else {
-      console.error('No audio URL returned from the server');
-    }
-  } catch (error) {
-    console.error('Error during TTS request:', error);
-  }
-};
-
-
-
+const speakText = (text) => {
+  stopSpeech()
+  utterance.value = new SpeechSynthesisUtterance(text)
+  synth.speak(utterance.value)
+}
 
 const stopSpeech = () => {
   if (synth.speaking) {
