@@ -24,74 +24,82 @@ class RAGManager:
         )
         self.collections = {}
         self.firebase_backup = FirebaseBackup(settings["firebase_backup"]["bucket_name"])
+        self.collection_id = None  # Will store the active collection ID
         self.initialize_collections()
 
     def initialize_collections(self):
-        """Initialize collections, falling back to Firebase backup if needed"""
+        """Initialize by finding available collections in Firebase"""
         try:
-            # Try to get collection from ChromaDB
+            # First try to get collection from ChromaDB
             self.collections["wikipedia"] = self.client.get_collection("wikipedia_collection")
             print("Successfully initialized ChromaDB collection")
         except Exception as e:
             print(f"ChromaDB collection error: {str(e)}")
             print("Attempting to restore from Firebase backup...")
-            self._restore_from_backup("wikipedia_collection")
+            
+            # List available collections in Firebase
+            available_collections = self.firebase_backup.list_firebase_collections()
+            print("Available collections in Firebase:", available_collections)
+            
+            if available_collections:
+                # Use the first available collection
+                self.collection_id = available_collections[0]
+                print(f"Using collection ID: {self.collection_id}")
+            else:
+                print("No collections found in Firebase")
+                self.collection_id = None
 
     def query_place(self, place_name: str, limit: int = 3, similarity_threshold: float = 0.5) -> dict:
-        """Query collections and penalize irrelevant results based on similarity score and return empty if no relevant results."""
+        """Query collections and penalize irrelevant results based on similarity score."""
         results = {}
 
-        if not self.collection_id:
-            print("No valid collection ID available")
-            return results
-
-        try:
-            # Load the collection data directly from Firebase
-            collection_data = self.firebase_backup.load_collection(self.collection_id)
-            
-            if collection_data and collection_data.get('documents'):
-                documents = collection_data['documents']
-                scores = collection_data.get('distances', [])  # Similarity scores
-                metadatas = collection_data.get('metadatas', [])  # Metadata if available
-
-                # Filter documents by similarity score threshold
-                filtered_documents = []
-                filtered_scores = []
+        for source, collection in self.collections.items():
+            try:
+                # Try ChromaDB collection first
+                query_result = collection.query(
+                    query_texts=[place_name],
+                    n_results=limit
+                )
                 
-                for doc, score, metadata in zip(documents, scores, metadatas):
-                    if score >= similarity_threshold:
-                        # Optional: Penalize based on metadata, e.g., low confidence
-                        if metadata.get("confidence", 1.0) < 0.5:
-                            score *= 0.5  # Apply penalty for low confidence
-                        filtered_documents.append(doc)
-                        filtered_scores.append(score)
-
-                # Check if any relevant documents passed the threshold
-                if filtered_documents:
-                    # Re-rank the filtered documents based on their final scores
-                    sorted_docs = sorted(zip(filtered_documents, filtered_scores), 
-                                    key=lambda x: x[1], reverse=True)
-                    results["wikipedia"] = [doc for doc, _ in sorted_docs[:limit]]
-                else:
-                    # Fallback to simple text matching if no documents pass the threshold
-                    matched_docs = [
-                        doc for doc in documents
-                        if place_name.lower() in doc.lower()
-                    ]
-                    if matched_docs:
-                        results["wikipedia"] = matched_docs[:limit]
+                if query_result and query_result['documents']:
+                    filtered_documents = []
+                    filtered_scores = []
+                    
+                    for doc, score, metadata in zip(query_result['documents'][0], 
+                                                  query_result['distances'][0], 
+                                                  query_result['metadatas'][0]):
+                        if score >= similarity_threshold:
+                            if metadata.get("confidence", 1.0) < 0.5:
+                                score *= 0.5
+                            filtered_documents.append(doc)
+                            filtered_scores.append(score)
+                    
+                    if filtered_documents:
+                        sorted_docs = sorted(zip(filtered_documents, filtered_scores), 
+                                          key=lambda x: x[1], reverse=True)
+                        results[source] = [doc for doc, _ in sorted_docs[:limit]]
                     else:
-                        results["wikipedia"] = []  # No documents found
+                        results[source] = []
                         
-            else:
-                # No data found in collection
-                print(f"Available keys in collection data: {collection_data.keys() if collection_data else None}")
-                results["wikipedia"] = []
-
-        except Exception as e:
-            print(f"Error querying collection: {str(e)}")
-            print(f"Collection data structure: {collection_data.keys() if collection_data else None}")
-            results["wikipedia"] = []
+            except Exception as e:
+                print(f"Error querying ChromaDB collection: {str(e)}")
+                print("Falling back to Firebase backup...")
+                
+                try:
+                    # Fallback to Firebase backup
+                    if self.collection_id:
+                        backup_data = self.firebase_backup.load_collection(self.collection_id)
+                        if backup_data:
+                            # Simple text matching fallback
+                            matched_docs = []
+                            for doc in backup_data.get('documents', []):
+                                if place_name.lower() in doc.lower():
+                                    matched_docs.append(doc)
+                            results[source] = matched_docs[:limit]
+                            
+                except Exception as backup_error:
+                    print(f"Error querying Firebase backup: {str(backup_error)}")
+                    results[source] = []
 
         return results
 # Create a single instance to be imported
