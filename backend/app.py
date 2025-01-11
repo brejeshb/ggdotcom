@@ -798,9 +798,9 @@ def test():
 
 
 @app.route('/ping', defaults={'path': ''})
-@app.route('/ping<path:path>', methods=['HEAD', 'GET'])
+@app.route('/ping<path:path>', methods=['HEAD'])
 def ping(path):
-    return '', 200
+    return 'Yes', 200
 
 # Configure for gunicorn
 if __name__ == "__main__":
