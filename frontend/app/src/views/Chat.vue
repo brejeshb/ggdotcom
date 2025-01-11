@@ -3,7 +3,7 @@
     <!-- Header with Back Button -->
     <header class="flex items-center justify-start bg-white p-4 shadow-md">
       <router-link to="/" class="flex items-center text-red-600 hover:text-red-700 font-semibold text-lg">
-        ←
+      ← back
       </router-link>
     </header>
 
