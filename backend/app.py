@@ -45,7 +45,7 @@ def get_rag_information(place_name: str) -> Dict[str, List[str]]:
         response = requests.post(
             RAG_SERVICE_URL,
             json={"place_name": place_name, "limit": 3},
-            timeout=5
+            timeout=10
         )
         if response.status_code == 200:
             return response.json()
@@ -54,7 +54,7 @@ def get_rag_information(place_name: str) -> Dict[str, List[str]]:
         print(f"Error fetching RAG information: {str(e)}")
         return {}
 
-@app.route('/chat', methods=['POST'])
+
 
 def create_chat_messages(prompt: str, context: Dict[str, List[str]], is_image: bool = False, image_data: str = None) -> List[dict]:
     """Create chat messages with proper context integration"""
@@ -104,6 +104,9 @@ def create_chat_messages(prompt: str, context: Dict[str, List[str]], is_image: b
         })
     
     return messages
+
+
+@app.route('/chat', methods=['POST'])
 
 def chat():
     try:
