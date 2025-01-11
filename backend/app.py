@@ -47,7 +47,7 @@ def chat():
         image = data.get('image')
         text = data.get('text')
         print(f"Location: {location}")
-        print(f"Image: {image}")
+        # print(f"Image: {image}")
         print(f"Text: {text}")
 
         #LOCATION WITH TEXT -------------------------------------------------------------
@@ -188,9 +188,9 @@ def chat():
                                 "text": prompt,
                             }, 
                             {
-                                "type" : "image_url",
-                                "image_url": {"url": f"base64,{image_data}"}
-                            }
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+                            },
                         ],
                     },
                 ],
