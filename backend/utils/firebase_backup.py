@@ -21,16 +21,16 @@ import os
 
 class FirebaseBackup:
     def __init__(self, bucket_name: str):
-        try:
-            app = firebase_admin.get_app()
-        except ValueError:
-            try:
-                cred = credentials.Certificate("ggdotcom-254aa-firebase-adminsdk-1nske-fd0d2cac2a.json")
-                firebase_admin.initialize_app(cred, {
-                    'storageBucket': bucket_name
-                })
-            except ValueError as e:
-                print(f"Firebase already initialized: {e}")
+        # try:
+        #     app = firebase_admin.get_app()
+        # except ValueError:
+        #     try:
+        #         cred = credentials.Certificate("ggdotcom-254aa-firebase-adminsdk-1nske-fd0d2cac2a.json")
+        #         firebase_admin.initialize_app(cred, {
+        #             'storageBucket': bucket_name
+        #         })
+        #     except ValueError as e:
+        #         print(f"Firebase already initialized: {e}")
 
         self.bucket = storage.bucket(bucket_name)
         print(f"Connected to Firebase bucket: {bucket_name}")
