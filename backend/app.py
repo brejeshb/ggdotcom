@@ -193,6 +193,7 @@ def chat():
                     'image': "",
                     'location': location,
                     'userCheck': "true",
+                    'repeat': 0,
                 }
 
                 #Add to firestore
@@ -253,6 +254,7 @@ def chat():
                     'image': image_data,
                     'location': location,
                     'userCheck': "false",
+                    'repeat': 0,
                 }
 
                 #Add to firestore
@@ -312,6 +314,7 @@ def chat():
                     'image': "",
                     'location': location,
                     'userCheck': "true",
+                    'repeat': 0,
                 }
 
                 #Add to firestore
@@ -355,6 +358,7 @@ def chat():
                     'image': "",
                     'location': location,
                     'userCheck': "false",
+                    'repeat': 0,
                 }
 
                 #Add to firestore
@@ -464,6 +468,7 @@ def chat():
                     'image': image_data,
                     'location': location,
                     'userCheck': "false",
+                    'repeat': 0,
                 }
 
                 #Add to firestore
@@ -513,8 +518,10 @@ def chat():
 
                 print("VISITED PLACES: " , landmarks)
 
-                # Initialize place variable
+                # Initialize place and number of repeats variable
                 selected_place = None
+                repeat = 0
+                past_messages = []
 
                 if places_result.get('results'):
                     for place in places_result['results']:
@@ -528,14 +535,44 @@ def chat():
                             
                 if not selected_place:
                     selected_place = address
+                    #If place is repeated, start the firestore collection to retrieve past messages that was send out
+                    most_recent_message = (
+                                            db.collection('tour')
+                                            .document("yDLsVQhwoDF9ZHoG0Myk")
+                                            .collection('messages')
+                                            .order_by('timestamp', direction='DESCENDING')
+                                            .limit(1)
+                                            .stream()
+                                                )
+                    for message in most_recent_message:
+                        message_data = message.to_dict()
+                        repeat = message_data.get('repeat')
+                    #Retrieve that number of past messages that will be added to the prompt
+                    repeated_messages = (
+                                            db.collection('tour')
+                                            .document("yDLsVQhwoDF9ZHoG0Myk")
+                                            .collection('messages')
+                                            .order_by('timestamp', direction='DESCENDING')
+                                            .limit(repeat)
+                                            .stream()
+                                                )
+                    chat_texts = []
+                    for message in repeated_messages:
+                        chat_text = message.to_dict().get('chatText', "")
+                        if chat_text:
+                            chat_texts.append(chat_text)
+                    past_messages = " ".join(chat_texts)
+                    repeat += 1
+
 
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
 
             context = get_rag_information(selected_place)
-            
+
             # Add address to prompt
             prompt = f"""You are a friendly Singapore Tour Guide giving a walking tour. If {selected_place} matches with {address}, this means you are in a residential or developing area.
+            If both are the same you might have talked about this location already. Here are past messages you have send: {past_messages}. If empty, means this is the first time you are talking about it.
 
             For residential/developing areas:
             - Describe the most interesting aspects of the neighborhood or district you're in
@@ -591,6 +628,7 @@ def chat():
                     'image': "",
                     'location': location,
                     'userCheck': "false",
+                    'repeat': repeat,
                 }
 
                 #Add to firestore
