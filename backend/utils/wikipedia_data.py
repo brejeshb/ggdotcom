@@ -342,7 +342,7 @@ if __name__ == "__main__":
             {"name": "Sri Layan Sithi Vinayagar Temple", "url": "https://en.wikipedia.org/wiki/Sri_Layan_Sithi_Vinayagar_Temple"},
             {"name": "Boat Quay", "url": "https://en.wikipedia.org/wiki/Boat_Quay"},
             {"name": "Masjid Al-Abrar", "url": "https://en.wikipedia.org/wiki/Masjid_Al-Abrar"},
-            # {"name": "STPI Creative Workshop and Gallery", "url": "https://en.wikipedia.org/wiki/STPI_-_Creative_Workshop_%26_Gallery"},
+            {"name": "STPI Creative Workshop and Gallery", "url": "https://en.wikipedia.org/wiki/STPI_-_Creative_Workshop_%26_Gallery"},
 
 
             {"name": "Temple Street @ Chinatown", "url": "https://en.wikipedia.org/wiki/Temple_Street,_Singapore"},

@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CHROMA_HOST = os.getenv('CHROMA_HOST', 'https://projectchromadb.onrender.com')
+CHROMA_HOST = os.getenv('CHROMA_HOST', 'https://ggdotcom-chromadb.onrender.com')
 CHROMA_PORT = int(os.getenv('CHROMA_PORT', 8000))
 CHROMA_API_KEY = os.getenv('CHROMA_API_KEY', '')
 CHROMA_SSL = os.getenv('CHROMA_SSL', 'false').lower() == 'true'

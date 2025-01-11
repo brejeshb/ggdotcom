@@ -1,9 +1,18 @@
-from typing import List, Dict
+# rag_service.py
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import chromadb
 from datetime import datetime, timedelta
-from config import get_chroma_settings
+from collections import defaultdict
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from backend.config import get_chroma_settings
 
-class TourGuideRAG:
+app = Flask(__name__)
+CORS(app)
+
+class RAGManager:
     def __init__(self):
         settings = get_chroma_settings()
         self.client = chromadb.HttpClient(
@@ -12,45 +21,58 @@ class TourGuideRAG:
             ssl=settings["chroma_ssl"],
             headers={"X-Api-Key": settings["chroma_api_key"]} if settings["chroma_api_key"] else None
         )
-        
-        # Get existing collection instead of creating new one
-        self.collection = self.client.get_collection(
-            name="singapore_poi_facts"
-        )
-        # In-memory cache for recently mentioned facts
-        self.fact_history = {}
+        self.collections = {}
+        self.initialize_collections()
 
-    def _get_fresh_facts(self, place_id: str, name: str) -> List[str]:
-        """
-        Retrieve facts that haven't been recently mentioned
-        """
-        # Query vector store with place name and basic info
-        results = self.collection.query(
-            query_texts=[name],
-            n_results=5,
-            where={"place_id": place_id}
-        )
+    def initialize_collections(self):
+        """Initialize available collections"""
+        try:
+            self.collections["wikipedia"] = self.client.get_collection("wikipedia_collection")
+            # Add other collections here as needed
+        except Exception as e:
+            print(f"Error initializing collections: {str(e)}")
+
+    def query_place(self, place_name: str, limit: int = 3) -> dict:
+        """Query all collections for place information"""
+        results = {}
         
-        # Filter out recently used facts
-        fresh_facts = []
-        for fact in results['documents'][0]:
-            fact_id = f"{place_id}_{hash(fact)}"
-            if fact_id not in self.fact_history:
-                fresh_facts.append(fact)
-                # Mark fact as used
-                self.fact_history[fact_id] = datetime.now()
+        for source, collection in self.collections.items():
+            try:
+                query_result = collection.query(
+                    query_texts=[place_name],
+                    n_results=limit
+                )
                 
-        return fresh_facts
-
-    def get_place_information(self, place_name: str) -> List[str]:
-        """
-        Retrieve information about a specific place
-        """
-        results = self.collection.query(
-            query_texts=[place_name],
-            n_results=3
-        )
+                if query_result and query_result['documents']:
+                    results[source] = query_result['documents'][0]
+                else:
+                    results[source] = []
+                    
+            except Exception as e:
+                print(f"Error querying {source}: {str(e)}")
+                results[source] = []
         
-        if results and len(results['documents']) > 0:
-            return results['documents'][0]
-        return []
+        return results
+
+# Initialize RAG manager
+rag_manager = RAGManager()
+
+@app.route('/RAG', methods=['POST'])
+def query_location():
+    try:
+        data = request.get_json()
+        place_name = data.get('place_name')
+        limit = data.get('limit', 3)
+        
+        if not place_name:
+            return jsonify({'error': 'No place name provided'}), 400
+            
+        results = rag_manager.query_place(place_name, limit)
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10001))
+    app.run(host="0.0.0.0", port=port)

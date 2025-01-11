@@ -9,6 +9,11 @@ import logging
 import googlemaps
 import firebase_admin
 from firebase_admin import credentials
+import requests
+from typing import List, Dict
+
+# RAG_SERVICE_URL = "http://localhost:10001/RAG"
+RAG_SERVICE_URL = "https://ggdotcom.onrender.com/RAG"
 
 # Configure logging
 logging.basicConfig(level=logging.ERROR)
@@ -34,7 +39,72 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 def home():
     return "Tour Guide API is running!"
 
+def get_rag_information(place_name: str) -> Dict[str, List[str]]:
+    """Fetch contextual information from RAG service"""
+    try:
+        response = requests.post(
+            RAG_SERVICE_URL,
+            json={"place_name": place_name, "limit": 3},
+            timeout=5
+        )
+        if response.status_code == 200:
+            return response.json()
+        return {}
+    except Exception as e:
+        print(f"Error fetching RAG information: {str(e)}")
+        return {}
+
 @app.route('/chat', methods=['POST'])
+
+def create_chat_messages(prompt: str, context: Dict[str, List[str]], is_image: bool = False, image_data: str = None) -> List[dict]:
+    """Create chat messages with proper context integration"""
+    messages = []
+    
+    # System message sets the role and basic context
+    system_msg = {
+        "role": "system",
+        "content": "You are a knowledgeable Singapore Tour Guide. Use the provided context to give accurate, engaging responses, but maintain a natural conversational tone."
+    }
+    messages.append(system_msg)
+    
+    # Add context as a separate message if available
+    if context:
+        context_points = []
+        for source, facts in context.items():
+            for fact in facts:
+                context_points.append(fact)
+        if context_points:
+            context_msg = {
+                "role": "system",
+                "content": "Here are some relevant facts about this location:\n" + "\n".join(context_points)
+            }
+            messages.append(context_msg)
+    
+    # Add the user's prompt with image if present
+    if is_image and image_data:
+        messages.append({
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": prompt
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": image_data
+                    }
+                }
+            ]
+        })
+    else:
+        messages.append({
+            "role": "user",
+            "content": prompt
+        })
+    
+    return messages
+
 def chat():
     try:
         data = request.get_json()
@@ -93,6 +163,8 @@ def chat():
                 print(f"Error cleaning base64 image: {str(e)}")
                 raise ValueError("Invalid base64 image data")
 
+            context = get_rag_information(address)
+
             #Initalize prompt with text
             prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text and photo that is given.
                 You are also given the user's address of {address} to provide more context in regards to the users location.
@@ -101,6 +173,8 @@ def chat():
                 Here is the Users text: {text_data}"""
 
             print(prompt)
+            # Create messages with context
+            messages = create_chat_messages(prompt, context, is_image=True)
                 
             try:
                 # create USER msg data for firestore
@@ -125,23 +199,26 @@ def chat():
             # Call OpenAI API
             response = openai.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt,
-                            }, 
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": image_data
-                                }
-                            }
-                        ],
-                    },
-                ],
+                messages=messages,
+                
+                # CAN UNCOMMENT THIS BLOCK OF CODE and replace the messages right above to compare w and w/o RAG
+                # [
+                #     {
+                #         "role": "user",
+                #         "content": [
+                #             {
+                #                 "type": "text",
+                #                 "text": prompt,
+                #             }, 
+                #             {
+                #                 "type": "image_url",
+                #                 "image_url": {
+                #                     "url": image_data
+                #                 }
+                #             }
+                #         ],
+                #     },
+                # ],
                 max_tokens=500,
                 temperature=0
             )
@@ -202,8 +279,11 @@ def chat():
                 
                 print(f"Address: {address}")
 
+
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
+
+            context = get_rag_information(address)
 
             #Initalize prompt with text
             prompt = f"""You are a Singapore Tour Guide, please provide details regarding the text that is given.
@@ -213,6 +293,7 @@ def chat():
                 Here is the Users text: {text_data}"""
 
             print(prompt)
+            messages = create_chat_messages(prompt, context)
                 
             try:
                 # create USER msg data for firestore
@@ -300,12 +381,15 @@ def chat():
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
 
+            context = get_rag_information(address)
             #Initalize prompt with IMAGE
             prompt = f"""You are a Singapore Tour Guide, please provide details regarding the photo that is given.
                 You are also given the user's address of {address} to provide more context in regards to where the photo is taken.
                 Start by saying, You see [Point of interest]. Do not mention anything about the address in your answer.
                 Include only what is given in the photo and describe in detail regarding history or context."""
 
+
+            messages = create_chat_messages(prompt, context, is_image=True, image_data=image_data)
 
             try:
                 # Check if it already has the prefix
@@ -327,23 +411,25 @@ def chat():
             # Call OpenAI API
             response = openai.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt,
-                            }, 
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": image_data
-                                }
-                            }
-                        ],
-                    },
-                ],
+                messages=messages,
+                
+                # [
+                #     {
+                #         "role": "user",
+                #         "content": [
+                #             {
+                #                 "type": "text",
+                #                 "text": prompt,
+                #             }, 
+                #             {
+                #                 "type": "image_url",
+                #                 "image_url": {
+                #                     "url": image_data
+                #                 }
+                #             }
+                #         ],
+                #     },
+                # ],
                 max_tokens=500,
                 temperature=0
             )
@@ -438,6 +524,8 @@ def chat():
             except Exception as e:
                 print(f"Geocoding error: {str(e)}")
 
+            context = get_rag_information(selected_place)
+            
             # Add address to prompt
             prompt = f"""You are a friendly Singapore Tour Guide giving a walking tour. If {selected_place} matches with {address}, this means you are in a residential or developing area.
 
@@ -458,12 +546,16 @@ def chat():
             
             print("PROMPT", prompt)
 
+            messages = create_chat_messages(prompt, context)
+
             # Call OpenAI API
             response = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
+                messages=messages,
+                
+                # [
+                #     {"role": "user", "content": prompt}
+                # ],
                 max_tokens=500,
                 temperature=0
             )
