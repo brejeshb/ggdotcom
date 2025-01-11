@@ -1,14 +1,3 @@
-import json
-import tempfile
-from typing import Dict, Optional, List
-import firebase_admin
-from firebase_admin import credentials, storage
-import numpy as np
-import chromadb
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from backend.config import get_chroma_settings
 
 import json
 import tempfile
@@ -19,6 +8,8 @@ import chromadb
 import sys
 import os
 from firebase_init import initialize_firebase
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+# from backend.firebase_init import initialize_firebase
 
 class FirebaseBackup:
     def __init__(self, bucket_name: str):
@@ -99,55 +90,55 @@ class FirebaseBackup:
             print(f"Error loading collection: {str(e)}")
             return None
 
-    # def get_collection_details(self, collection_id: str) -> Dict:
-    #     """Get details about a collection from ChromaDB"""
-    #     try:
-    #         collection = self.chroma_client.get_collection(collection_id)
-    #         result = collection.get()
+    def get_collection_details(self, collection_id: str) -> Dict:
+        """Get details about a collection from ChromaDB"""
+        try:
+            collection = self.chroma_client.get_collection(collection_id)
+            result = collection.get()
             
-    #         return {
-    #             'id': collection_id,
-    #             'count': len(result['ids']) if result['ids'] else 0,
-    #             'documents': result if result['ids'] else None
-    #         }
-    #     except Exception as e:
-    #         print(f"Error getting collection details: {str(e)}")
-    #         return {'id': collection_id, 'error': str(e)}
+            return {
+                'id': collection_id,
+                'count': len(result['ids']) if result['ids'] else 0,
+                'documents': result if result['ids'] else None
+            }
+        except Exception as e:
+            print(f"Error getting collection details: {str(e)}")
+            return {'id': collection_id, 'error': str(e)}
 
-    # def view_collection(self, collection_id: str) -> None:
-    #     """View all documents in a collection by ID"""
-    #     try:
-    #         details = self.get_collection_details(collection_id)
+    def view_collection(self, collection_id: str) -> None:
+        """View all documents in a collection by ID"""
+        try:
+            details = self.get_collection_details(collection_id)
             
-    #         if 'error' in details:
-    #             print(f"\nError accessing collection: {details['error']}")
-    #             return
+            if 'error' in details:
+                print(f"\nError accessing collection: {details['error']}")
+                return
                 
-    #         if not details['documents']:
-    #             print(f"\nNo documents found in collection ID: {collection_id}")
-    #             return
+            if not details['documents']:
+                print(f"\nNo documents found in collection ID: {collection_id}")
+                return
                 
-    #         print(f"\n=== Documents in Collection '{collection_id}' ===")
-    #         print(f"Total documents: {details['count']}")
+            print(f"\n=== Documents in Collection '{collection_id}' ===")
+            print(f"Total documents: {details['count']}")
             
-    #         for i, doc_id in enumerate(details['documents']['ids']):
-    #             print(f"\nDocument {i + 1}/{details['count']}")
-    #             print("=" * 50)
-    #             print(f"ID: {doc_id}")
+            for i, doc_id in enumerate(details['documents']['ids']):
+                print(f"\nDocument {i + 1}/{details['count']}")
+                print("=" * 50)
+                print(f"ID: {doc_id}")
                 
-    #             if details['documents']['metadatas']:
-    #                 metadata = details['documents']['metadatas'][i]
-    #                 print("\nMetadata:")
-    #                 print("-" * 20)
-    #                 for key, value in metadata.items():
-    #                     print(f"{key}: {value}")
+                if details['documents']['metadatas']:
+                    metadata = details['documents']['metadatas'][i]
+                    print("\nMetadata:")
+                    print("-" * 20)
+                    for key, value in metadata.items():
+                        print(f"{key}: {value}")
                 
-    #             if details['documents']['documents']:
-    #                 print("\nDocument Preview:")
-    #                 print("-" * 20)
-    #                 text = details['documents']['documents'][i]
-    #                 print(f"{text[:200]}...")
-    #             print("=" * 50)
+                if details['documents']['documents']:
+                    print("\nDocument Preview:")
+                    print("-" * 20)
+                    text = details['documents']['documents'][i]
+                    print(f"{text[:200]}...")
+                print("=" * 50)
                 
-    #     except Exception as e:
-    #         print(f"\nError viewing collection: {str(e)}")
+        except Exception as e:
+            print(f"\nError viewing collection: {str(e)}")

@@ -53,53 +53,55 @@ class RAGManager:
         """Query collections and penalize irrelevant results based on similarity score."""
         results = {}
 
-        for source, collection in self.collections.items():
-            try:
-                # Try ChromaDB collection first
-                query_result = collection.query(
-                    query_texts=[place_name],
-                    n_results=limit
-                )
+        if not self.collection_id:
+            print("No valid collection ID available")
+            return results
+
+        try:
+            # Get data directly from Firebase backup
+            collection_data = self.firebase_backup.get_collection_details(self.collection_id)
+            
+            if collection_data and 'documents' in collection_data and collection_data['documents']:
+                documents = collection_data['documents']
+                print(f"Found {len(documents['documents'])} documents in collection")
                 
-                if query_result and query_result['documents']:
-                    filtered_documents = []
-                    filtered_scores = []
-                    
-                    for doc, score, metadata in zip(query_result['documents'][0], 
-                                                  query_result['distances'][0], 
-                                                  query_result['metadatas'][0]):
-                        if score >= similarity_threshold:
-                            if metadata.get("confidence", 1.0) < 0.5:
-                                score *= 0.5
-                            filtered_documents.append(doc)
-                            filtered_scores.append(score)
-                    
-                    if filtered_documents:
-                        sorted_docs = sorted(zip(filtered_documents, filtered_scores), 
-                                          key=lambda x: x[1], reverse=True)
-                        results[source] = [doc for doc, _ in sorted_docs[:limit]]
-                    else:
-                        results[source] = []
-                        
-            except Exception as e:
-                print(f"Error querying ChromaDB collection: {str(e)}")
-                print("Falling back to Firebase backup...")
+                # Get the documents, distances (scores), and metadata
+                matched_docs = []
+                matched_scores = []
+                matched_metadata = []
                 
-                try:
-                    # Fallback to Firebase backup
-                    if self.collection_id:
-                        backup_data = self.firebase_backup.load_collection(self.collection_id)
-                        if backup_data:
-                            # Simple text matching fallback
-                            matched_docs = []
-                            for doc in backup_data.get('documents', []):
-                                if place_name.lower() in doc.lower():
-                                    matched_docs.append(doc)
-                            results[source] = matched_docs[:limit]
-                            
-                except Exception as backup_error:
-                    print(f"Error querying Firebase backup: {str(backup_error)}")
-                    results[source] = []
+                for i, doc in enumerate(documents['documents']):
+                    # Check if the document contains the place name
+                    if place_name.lower() in doc.lower():
+                        matched_docs.append(doc)
+                        # Use metadata confidence if available
+                        confidence = documents['metadatas'][i].get('confidence', 1.0) if documents.get('metadatas') else 1.0
+                        matched_scores.append(confidence)
+                        matched_metadata.append(documents['metadatas'][i] if documents.get('metadatas') else {})
+                
+                # Filter and sort results
+                filtered_results = []
+                for doc, score, metadata in zip(matched_docs, matched_scores, matched_metadata):
+                    if score >= similarity_threshold:
+                        if metadata.get("confidence", 1.0) < 0.5:
+                            score *= 0.5  # Apply penalty for low confidence
+                        filtered_results.append((doc, score))
+
+                # Sort by score and take top results
+                if filtered_results:
+                    sorted_results = sorted(filtered_results, key=lambda x: x[1], reverse=True)
+                    results["wikipedia"] = [doc for doc, _ in sorted_results[:limit]]
+                else:
+                    print("No matching documents found after filtering")
+                    results["wikipedia"] = []
+            else:
+                print("No documents found in collection data")
+                print(f"Collection data keys: {collection_data.keys() if collection_data else None}")
+                results["wikipedia"] = []
+
+        except Exception as e:
+            print(f"Error querying collection: {str(e)}")
+            results["wikipedia"] = []
 
         return results
 # Create a single instance to be imported
