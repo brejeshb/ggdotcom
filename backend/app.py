@@ -572,27 +572,31 @@ def chat():
 
             # Add address to prompt
             prompt = f"""
-            Due to insufficient information in the RAG. If location given below differs greatly from the context provided in the rag. Do not take reference from it.
-            
-            You are a friendly Singapore Tour Guide giving a walking tour. If {selected_place} matches with {address}, this means you are in a residential or developing area.
-            If both are the same you might have talked about this location already. Here are past messages you have send: [{past_messages}]. 
-            If empty, means this is the first time you are talking about it.  
-            If not empty, do not state the same thing again. Talk about something else about the area.
+                Due to insufficient information in the RAG, if the location provided below differs greatly from the context in the RAG, completely disregard the RAG and craft original content about the provided location instead.
 
-            For residential/developing areas:
-            - Describe the most interesting aspects of the neighborhood or district you're in
-            - Mention any nearby parks, nature areas, or community spaces
-            - Include interesting facts about the area's development or future plans
-            - Focus on what makes this area unique in Singapore
+                You are a friendly Singapore Tour Guide giving a walking tour. If {selected_place} matches with {address}, this means you are in a residential or developing area. 
+                If both are the same, you might have talked about this location already. Here are past messages you have sent: [{past_messages}]. 
+                If empty, it means this is the first time you are talking about it.  
+                If not empty, do not state the same thing again. Talk about something else about the area.
 
-            For tourist landmarks:
-            - Name and describe the specific landmark
-            - Share its historical significance and background
-            - Explain its cultural importance in Singapore
-            - Describe unique architectural features
-            - Include interesting facts that make it special
+                For residential/developing areas:
+                - Focus exclusively on the neighborhood or district, disregarding unrelated RAG content.
+                - Describe the most interesting aspects of the neighborhood or district you're in.
+                - Mention any nearby parks, nature areas, or community spaces.
+                - Include interesting facts about the area's development or future plans.
+                - Highlight what makes this area unique in Singapore.
 
-            Start with "You see [Point of interest/Area name]" and keep the tone friendly and conversational, as if speaking to tourists in person. Don't mention exact addresses or coordinates."""
+                For tourist landmarks:
+                - Name and describe the specific landmark.
+                - Use the RAG only if it directly mentions the landmark and matches the provided location. If the RAG does not match, ignore it entirely.
+                - Share its historical significance and background.
+                - Explain its cultural importance in Singapore.
+                - Describe unique architectural features.
+                - Include interesting facts that make it special.
+
+                Start with "You see [Point of interest/Area name]" and keep the tone friendly and conversational, as if speaking to tourists in person. Don't mention exact addresses or coordinates.
+                """
+
             
             print("PROMPT", prompt)
 
