@@ -11,9 +11,8 @@ import firebase_admin
 from firebase_admin import credentials
 import requests
 from typing import List, Dict
+from utils.RAG import rag_manager
 
-# RAG_SERVICE_URL = "http://localhost:10001/RAG"
-RAG_SERVICE_URL = "https://ggdotcom.onrender.com/RAG"
 
 # Configure logging
 logging.basicConfig(level=logging.ERROR)
@@ -40,20 +39,15 @@ def home():
     return "Tour Guide API is running!"
 
 def get_rag_information(place_name: str) -> Dict[str, List[str]]:
-    """Fetch contextual information from RAG service"""
+    """Fetch contextual information using local RAG manager"""
     try:
-        response = requests.post(
-            RAG_SERVICE_URL,
-            json={"place_name": place_name, "limit": 3},
-            timeout=10
-        )
-        if response.status_code == 200:
-            return response.json()
-        return {}
+        print(f"Querying RAG for place: {place_name}")
+        results = rag_manager.query_place(place_name, limit=3)
+        print("RAG query completed")
+        return results
     except Exception as e:
-        print(f"Error fetching RAG information: {str(e)}")
+        print(f"Error in RAG query: {str(e)}")
         return {}
-
 
 
 def create_chat_messages(prompt: str, context: Dict[str, List[str]], is_image: bool = False, image_data: str = None) -> List[dict]:
