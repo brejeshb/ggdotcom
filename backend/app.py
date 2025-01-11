@@ -801,9 +801,10 @@ def test():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/ping', methods=['HEAD'])
-def ping():
-    return '', 200  # Responds with a 200 OK and no content
+@app.route('/ping', defaults={'path': ''})
+@app.route('/ping<path:path>', methods=['HEAD', 'GET'])
+def ping(path):
+    return '', 200
 
 # Configure for gunicorn
 if __name__ == "__main__":
