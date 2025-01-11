@@ -37,109 +37,63 @@ class RAGManager:
             print("Attempting to restore from Firebase backup...")
             self._restore_from_backup("wikipedia_collection")
 
-    def _restore_from_backup(self, collection_name: str):
-        """Restore collection from Firebase backup using binary files"""
-        try:
-            # Load binary data from Firebase
-            backup_data = self.firebase_backup.load_collection(collection_name)
-            
-            if backup_data and all(key in backup_data for key in ['data_level0', 'header', 'length', 'link_lists']):
-                # Create a new collection
-                collection = self.client.create_collection(collection_name)
-                
-                # Create temporary directory to store binary files
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    # Write binary files to temporary directory
-                    file_mapping = {
-                        'data_level0': 'data_level0.bin',
-                        'header': 'header.bin',
-                        'length': 'length.bin',
-                        'link_lists': 'link_lists.bin'
-                    }
-                    
-                    for key, filename in file_mapping.items():
-                        if key in backup_data:
-                            file_path = os.path.join(temp_dir, filename)
-                            with open(file_path, 'wb') as f:
-                                f.write(backup_data[key])
-                    
-                    # Load the binary files into the collection
-                    # Note: You might need to adjust this part based on your ChromaDB version
-                    # and specific requirements for loading binary data
-                    collection.load(temp_dir)
-                    
-                self.collections["wikipedia"] = collection
-                print(f"Successfully restored {collection_name} from Firebase backup")
-            else:
-                print(f"Incomplete or missing backup data for {collection_name}")
-                print("Required files: data_level0.bin, header.bin, length.bin, link_lists.bin")
-                print("Found files:", list(backup_data.keys()) if backup_data else "None")
-                
-        except Exception as e:
-            print(f"Error restoring from backup: {str(e)}")
-            print(f"Backup data structure: {backup_data.keys() if backup_data else 'None'}")
-
     def query_place(self, place_name: str, limit: int = 3, similarity_threshold: float = 0.5) -> dict:
         """Query collections and penalize irrelevant results based on similarity score and return empty if no relevant results."""
         results = {}
 
-        for source, collection in self.collections.items():
-            try:
-                # Perform vector search (if using embeddings)
-                query_result = collection.query(
-                    query_texts=[place_name],
-                    n_results=limit
-                )
+        if not self.collection_id:
+            print("No valid collection ID available")
+            return results
 
-                if query_result and query_result['documents']:
-                    documents = query_result['documents']
-                    scores = query_result['distances']  # Assuming the API returns distances (cosine similarity)
-                    metadatas = query_result['metadatas']  # Assuming metadata is available
+        try:
+            # Load the collection data directly from Firebase
+            collection_data = self.firebase_backup.load_collection(self.collection_id)
+            
+            if collection_data and collection_data.get('documents'):
+                documents = collection_data['documents']
+                scores = collection_data.get('distances', [])  # Similarity scores
+                metadatas = collection_data.get('metadatas', [])  # Metadata if available
 
-                    # Filter documents by similarity score threshold
-                    filtered_documents = []
-                    filtered_scores = []
-                    for doc, score, metadata in zip(documents, scores, metadatas):
-                        if score >= similarity_threshold:
-                            # Optional: Penalize based on metadata, e.g., low confidence
-                            if metadata.get("confidence", 1.0) < 0.5:
-                                score *= 0.5  # Apply penalty for low confidence
-                            filtered_documents.append(doc)
-                            filtered_scores.append(score)
+                # Filter documents by similarity score threshold
+                filtered_documents = []
+                filtered_scores = []
+                
+                for doc, score, metadata in zip(documents, scores, metadatas):
+                    if score >= similarity_threshold:
+                        # Optional: Penalize based on metadata, e.g., low confidence
+                        if metadata.get("confidence", 1.0) < 0.5:
+                            score *= 0.5  # Apply penalty for low confidence
+                        filtered_documents.append(doc)
+                        filtered_scores.append(score)
 
-                    # Check if any relevant documents passed the threshold
-                    if filtered_documents:
-                        # Optionally, you can re-rank the filtered documents based on their final scores
-                        # Sorting by score (higher score means more relevant)
-                        sorted_docs = sorted(zip(filtered_documents, filtered_scores), key=lambda x: x[1], reverse=True)
-                        results[source] = [doc for doc, _ in sorted_docs[:limit]]
-                    else:
-                        results[source] = []  # No relevant documents passed the threshold
+                # Check if any relevant documents passed the threshold
+                if filtered_documents:
+                    # Re-rank the filtered documents based on their final scores
+                    sorted_docs = sorted(zip(filtered_documents, filtered_scores), 
+                                    key=lambda x: x[1], reverse=True)
+                    results["wikipedia"] = [doc for doc, _ in sorted_docs[:limit]]
                 else:
-                    # Fallback to simple text matching if vector search fails
-                    backup_data = self.firebase_backup.load_collection(f"{source}_collection")
-                    if backup_data and backup_data.get('documents'):
-                        # Simple text search with relevance scoring based on string matching
-                        matched_docs = [
-                            doc for doc in backup_data["documents"]
-                            if place_name.lower() in doc.lower()
-                        ]
-                        if matched_docs:
-                            results[source] = matched_docs[:limit]
-                        else:
-                            results[source] = []  # No documents found, return empty list
+                    # Fallback to simple text matching if no documents pass the threshold
+                    matched_docs = [
+                        doc for doc in documents
+                        if place_name.lower() in doc.lower()
+                    ]
+                    if matched_docs:
+                        results["wikipedia"] = matched_docs[:limit]
                     else:
-                        results[source] = []  # No backup data, return empty list
-            except Exception as e:
-                print(f"Error querying {source}: {str(e)}")
-                results[source] = []  # Return empty result in case of error
+                        results["wikipedia"] = []  # No documents found
+                        
+            else:
+                # No data found in collection
+                print(f"Available keys in collection data: {collection_data.keys() if collection_data else None}")
+                results["wikipedia"] = []
 
-        # If no relevant documents are found across all sources, return empty result
-        if all(len(res) == 0 for res in results.values()):
-            return {}
+        except Exception as e:
+            print(f"Error querying collection: {str(e)}")
+            print(f"Collection data structure: {collection_data.keys() if collection_data else None}")
+            results["wikipedia"] = []
 
         return results
-
 # Create a single instance to be imported
 rag_manager = RAGManager()
 
