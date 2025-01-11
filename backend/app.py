@@ -532,6 +532,113 @@ def retrieve():
             logging.error("Error in /messages endpoint", exc_info=True)
             return jsonify({'error': str(e)}), 500
 
+
+# For testing
+@app.route('/test', methods = ['POST'])
+def chat():
+    try:
+        data = request.get_json()
+        # Need factor cases with location, image (Base64)
+        # if there is user input, add in to DB as well
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        text = data.get('text')
+        print(f"Text: {text}")
+
+        # TEXT
+        if text:
+            try:
+                #Get text data
+                text_data = data.get('text')
+
+            except Exception as e:
+                print(f"Text retrieval error: {str(e)}")
+            
+
+            #Initalize prompt with text
+            prompt = f"""{text_data}"""
+
+            print(prompt)
+                
+            # try:
+            #     # create USER msg data for firestore
+            #     message_data = {
+            #         'timestamp': datetime.now(),
+            #         'message_Id': "",
+            #         'chatText': text_data,
+            #         'image': "",
+            #         'location': '',
+            #         'userCheck': "true",
+            #     }
+
+            #     #Add to firestore
+            #     db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+            #     .collection('messages').add(message_data)
+                
+            #     print("Success: Added to Firestore")
+
+            # except Exception as e:
+            #     print(f"Error: Failed to add to Firestore - {str(e)}")
+
+            # Call OpenAI API
+            response = openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt,
+                            }, 
+                        ],
+                    },
+                ],
+                max_tokens=500,
+                temperature=0
+            )
+
+            # Extract response text
+            response_text = response.choices[0].message.content
+
+            print(f"Response: {response_text}")
+
+            # Create response object
+            response_data = {
+                'id': uuid.uuid4().hex,
+                'timestamp': datetime.now().isoformat(),
+                'prompt': prompt,
+                'response': response_text
+            }
+
+            # try:
+            #     # create REPLY msg data for firestore
+            #     message_data = {
+            #         'timestamp': datetime.now(),
+            #         'message_Id': "",
+            #         'chatText': response_text,
+            #         'image': '',
+            #         'location': location,
+            #         'userCheck': "false",
+            #     }
+
+            #     #Add to firestore
+            #     db.collection("tour").document("yDLsVQhwoDF9ZHoG0Myk")\
+            #     .collection('messages').add(message_data)
+                
+            #     print("Success: Added to Firestore")
+            # except Exception as e:
+            #     print(f"Error: Failed to add to Firestore - {str(e)}")
+
+            return jsonify(response_data)
+        #END TEXT -------------------------------------------------------------
+
+    except Exception as e:
+        logging.error("Error in /test endpoint", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
 # Configure for gunicorn
 if __name__ == "__main__":
     # If running directly
