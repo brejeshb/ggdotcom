@@ -571,7 +571,10 @@ def chat():
             context = get_rag_information(selected_place)
 
             # Add address to prompt
-            prompt = f"""You are a friendly Singapore Tour Guide giving a walking tour. If {selected_place} matches with {address}, this means you are in a residential or developing area.
+            prompt = f"""
+            Due to insufficient information in the RAG. If location given below differs greatly from the context provided in the rag. Do not take reference from it.
+            
+            You are a friendly Singapore Tour Guide giving a walking tour. If {selected_place} matches with {address}, this means you are in a residential or developing area.
             If both are the same you might have talked about this location already. Here are past messages you have send: [{past_messages}]. 
             If empty, means this is the first time you are talking about it.  
             If not empty, do not state the same thing again. Talk about something else about the area.
@@ -604,7 +607,7 @@ def chat():
                 #     {"role": "user", "content": prompt}
                 # ],
                 max_tokens=500,
-                temperature=0.7
+                temperature=0.5
             )
 
             # Extract response text
