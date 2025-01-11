@@ -521,6 +521,7 @@ def chat():
                 # Initialize place and number of repeats variable
                 selected_place = None
                 repeat = 0
+                past_messages = []
 
                 if places_result.get('results'):
                     for place in places_result['results']:
