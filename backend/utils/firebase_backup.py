@@ -10,7 +10,7 @@ import os
 from firebase_init import initialize_firebase
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 # from backend.firebase_init import initialize_firebase
-from backend.config import get_chroma_settings
+from config import get_chroma_settings
 
 
 class FirebaseBackup:
