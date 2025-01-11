@@ -25,7 +25,7 @@ class FirebaseBackup:
             app = firebase_admin.get_app()
         except ValueError:
             try:
-                cred = credentials.Certificate("../ggdotcom-254aa-firebase-adminsdk-1nske-fd0d2cac2a.json")
+                cred = credentials.Certificate("ggdotcom-254aa-firebase-adminsdk-1nske-fd0d2cac2a.json")
                 firebase_admin.initialize_app(cred, {
                     'storageBucket': bucket_name
                 })
