@@ -13,5 +13,7 @@ def get_chroma_settings():
         "chroma_host": CHROMA_HOST,
         "chroma_port": CHROMA_PORT,
         "chroma_api_key": CHROMA_API_KEY,
-        "chroma_ssl": CHROMA_SSL
+        "chroma_ssl": CHROMA_SSL,
+        "storage": "filesystem",
+        "path": "/mnt/data/chromadb"  # Replace with your persistent volume path
     }
