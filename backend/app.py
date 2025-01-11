@@ -535,7 +535,7 @@ def retrieve():
 
 # For testing
 @app.route('/test', methods = ['POST'])
-def chat():
+def test():
     try:
         data = request.get_json()
         # Need factor cases with location, image (Base64)
