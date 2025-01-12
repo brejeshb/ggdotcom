@@ -3,10 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CHROMA_HOST = os.getenv('CHROMA_HOST', 'https://ggdotcom-chromadb.onrender.com')
-CHROMA_PORT = int(os.getenv('CHROMA_PORT', 8000))
+CHROMA_HOST = 'ggdotcom-production.up.railway.app'
+CHROMA_PORT = 443  # HTTPS port
 CHROMA_API_KEY = os.getenv('CHROMA_API_KEY', '')
-CHROMA_SSL = os.getenv('CHROMA_SSL', 'false').lower() == 'true'
+CHROMA_SSL = True
 FIREBASE_BUCKET = "ggdotcom-254aa.firebasestorage.app"
 
 def get_firebase_backup():
