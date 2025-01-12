@@ -11,12 +11,13 @@ app = FastAPI()
 
 # Initialize ChromaDB client with proper settings
 chroma_settings = Settings(
-    chroma_api_impl="rest",
+    chroma_api_impl="default",  # Set to default instead of rest
     allow_reset=True,
     is_persistent=True,
     persist_directory="chroma_db"
 )
 
+# Initialize ChromaDB client
 chroma_client = chromadb.PersistentClient(
     path="chroma_db",
     settings=chroma_settings
@@ -36,8 +37,9 @@ async def list_collections():
 
 @app.get("/api/v2/auth/identity")
 async def get_identity():
-    """Add identity endpoint to prevent 404"""
-    return {"user": "default"}
+    """Add identity endpoint to prevent 404 and provide basic identity info."""
+    # You could return a more detailed identity object here, depending on your requirements
+    return {"user": "default", "role": "guest", "permissions": ["read", "write"]}
 
 @app.get("/health")
 async def health_check():
