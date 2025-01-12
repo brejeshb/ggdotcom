@@ -7,8 +7,16 @@ from chromadb.config import Settings
 
 load_dotenv()
 
-# Create the ChromaDB API app
-chroma_api = chromadb.server.fastapi.FastAPI()
+# Create settings for ChromaDB
+settings = Settings(
+    chroma_api_impl="rest",
+    is_persistent=True,
+    persist_directory="chroma_db",
+    allow_reset=True
+)
+
+# Create the ChromaDB API app with settings
+chroma_api = chromadb.server.fastapi.FastAPI(settings=settings)
 
 # Create the main FastAPI app
 app = FastAPI()
