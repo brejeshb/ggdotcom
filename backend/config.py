@@ -22,6 +22,7 @@ def get_chroma_settings():
         "chroma_port": CHROMA_PORT,
         "chroma_ssl": CHROMA_SSL,
         "chroma_api_key": CHROMA_API_KEY,
+        "chroma_api_version": "v1",  # Add this line
         "allow_reset": True,
         "firebase_backup": get_firebase_backup()
     }
