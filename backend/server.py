@@ -3,7 +3,7 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 import chromadb
-from chromadb.server import ChromaAPIServer
+import chromadb.server.fastapi
 
 load_dotenv()
 
@@ -11,17 +11,16 @@ load_dotenv()
 app = FastAPI()
 
 # Create ChromaDB server
-chroma_server = ChromaAPIServer(
-    settings=chromadb.Settings(
-        is_persistent=True,
-        persist_directory="chroma_db",
-        allow_reset=True,
-        anonymized_telemetry=False
-    )
+settings = chromadb.Settings(
+    chroma_db_impl="duckdb+parquet",
+    persist_directory="chroma_db",
+    allow_reset=True,
+    anonymized_telemetry=False
 )
 
-# Mount ChromaDB server at /api endpoint
-app.mount("/api", chroma_server.app)
+# Create and mount the ChromaDB API
+api = chromadb.server.fastapi.FastAPI(settings=settings)
+app.mount("/api", api.app)
 
 @app.get("/")
 async def root():
