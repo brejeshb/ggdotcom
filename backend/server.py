@@ -1,29 +1,31 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 import uvicorn
 import os
 from dotenv import load_dotenv
+import chromadb
+from chromadb.config import Settings
 import chromadb.server.fastapi
 
 load_dotenv()
 
-# Create the ChromaDB API app with the new configuration style
-chroma_api = chromadb.server.fastapi.FastAPI(
-    settings=chromadb.config.Settings(
-        persist_directory="chroma_db",
-        allow_reset=True,
-        is_persistent=True,
-        anonymized_telemetry=False  # Optional, add if you want to disable telemetry
-    )
-)
-
 # Create the main FastAPI app
 app = FastAPI()
 
-# Mount the ChromaDB app at the root path
-# This ensures all ChromaDB endpoints are available
-app.mount("/api", chroma_api)
+# Initialize ChromaDB server app
+settings = Settings(
+    persist_directory="chroma_db",
+    allow_reset=True,
+    is_persistent=True,
+    anonymized_telemetry=False
+)
 
-# Add custom health check endpoint
+# Create the ChromaDB API app correctly
+api = chromadb.server.fastapi.FastAPI(settings=settings)
+
+# Mount the ChromaDB app
+app.mount("/api", api.app)  # Note the .app here
+
+# Add health check endpoint
 @app.get("/")
 async def root():
     return {"status": "healthy"}
