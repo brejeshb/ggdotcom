@@ -9,17 +9,17 @@ load_dotenv()
 
 app = FastAPI()
 
-# Initialize ChromaDB client with proper settings
+# Initialize ChromaDB with REST implementation
 chroma_settings = Settings(
-    chroma_api_impl="default",  # Set to default instead of rest
+    chroma_api_impl="rest",  # This is crucial
     allow_reset=True,
-    is_persistent=True,
     persist_directory="chroma_db"
 )
 
-# Initialize ChromaDB client
-chroma_client = chromadb.PersistentClient(
-    path="chroma_db",
+# Use HttpClient instead of PersistentClient for the server
+chroma_client = chromadb.HttpClient(
+    host="localhost",  # Since this is running on Railway itself
+    port=8000,
     settings=chroma_settings
 )
 
@@ -37,9 +37,7 @@ async def list_collections():
 
 @app.get("/api/v2/auth/identity")
 async def get_identity():
-    """Add identity endpoint to prevent 404 and provide basic identity info."""
-    # You could return a more detailed identity object here, depending on your requirements
-    return {"user": "default", "role": "guest", "permissions": ["read", "write"]}
+    return {"user": "default"}
 
 @app.get("/health")
 async def health_check():
