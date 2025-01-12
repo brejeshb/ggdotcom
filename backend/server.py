@@ -3,20 +3,18 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 import chromadb.server.fastapi
-from chromadb.config import Settings
 
 load_dotenv()
 
-# Create settings for ChromaDB
-settings = Settings(
-    chroma_api_impl="rest",
-    is_persistent=True,
-    persist_directory="chroma_db",
-    allow_reset=True
+# Create the ChromaDB API app with the new configuration style
+chroma_api = chromadb.server.fastapi.FastAPI(
+    settings=chromadb.config.Settings(
+        persist_directory="chroma_db",
+        allow_reset=True,
+        is_persistent=True,
+        anonymized_telemetry=False  # Optional, add if you want to disable telemetry
+    )
 )
-
-# Create the ChromaDB API app with settings
-chroma_api = chromadb.server.fastapi.FastAPI(settings=settings)
 
 # Create the main FastAPI app
 app = FastAPI()
